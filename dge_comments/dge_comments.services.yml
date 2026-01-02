@@ -1,0 +1,3 @@
+services:
+  dge_comments.services_api_comments:
+    class: 'Drupal\dge_comments\Service\DGECommentsService'

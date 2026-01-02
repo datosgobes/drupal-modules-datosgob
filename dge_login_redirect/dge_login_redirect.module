@@ -1,0 +1,55 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_login_redirect (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_user_login().
+ */
+function dge_login_redirect_user_login($account) {
+
+  $current_route = Drupal::routeMatch()->getRouteName();
+  $request = Drupal::request();
+  if ($request->getRequestFormat() !== 'html') {
+    return;
+  }
+  $destination = $request->query->get('destination');
+  if ($destination && $destination != '/user/login') {
+    return;
+  }
+
+  if (\Drupal::state()->get('system.maintenance_mode') &&
+    !$account->hasPermission('access site in maintenance mode')) {
+    \Drupal::service('request_stack')
+      ->getCurrentRequest()->query->set('destination', URL::fromUserInput('/')
+      ->toString());
+  }
+
+  $pass_reset_token = \Drupal::request()->query->get('pass-reset-token');
+  if ($pass_reset_token) {
+    \Drupal::logger('dge_login_redirect')->info('Redirect to home avoided due to being a password reset');
+    return;
+  }
+
+  if (!in_array($current_route, ['user.reset', 'user.reset.login'])) {
+    \Drupal::service('request_stack')
+      ->getCurrentRequest()->query->set('destination', URL::fromUserInput('/')->toString());
+  }
+}

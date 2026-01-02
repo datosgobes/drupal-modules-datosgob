@@ -1,0 +1,47 @@
+dge_widget.widget_rss_fecha:
+  path: '/widget-rss-fecha/{parameter}'
+  defaults:
+    _controller: '\Drupal\dge_widget\Controller\DgeWidgetController::fechaCallback'
+    _title: 'widget-rss-fecha'
+  requirements:
+    _permission: 'access dge_widget'
+
+dge_widget.widget_rss_alpha:
+  path: '/widget-rss-alpha/{parameter}'
+  defaults:
+    _controller: '\Drupal\dge_widget\Controller\DgeWidgetController::alphaCallback'
+    _title: 'widget-rss-alpha'
+  requirements:
+    _permission: 'access dge_widget'
+
+dge_widget.datos_widget_rss:
+  path: '/datos/widget-rss/{parameter}'
+  defaults:
+    _controller: '\Drupal\dge_widget\Controller\DgeWidgetController::callback'
+    _title: 'widget-rss'
+  requirements:
+    _permission: 'access dge_widget'
+
+dge_widget.widget_rss:
+  path: '/widget-rss/{parameter}'
+  defaults:
+    _controller: '\Drupal\dge_widget\Controller\DgeWidgetController::callback'
+    _title: 'widget-rss'
+  requirements:
+    _permission: 'access dge_widget'
+
+dge_widget.admin_dashboard_widget:
+  path: '/admin/dashboard/widget'
+  defaults:
+    _form: '\Drupal\dge_widget\Form\FormularioGeneradorForm'
+    _title: 'Generate widget'
+  requirements:
+    _permission: 'access generate dge_widget'
+
+dge_widget.dashboard_widget:
+  path: '/dashboard/widget'
+  defaults:
+    _form: '\Drupal\dge_widget\Form\FormularioGeneradorForm'
+    _title: 'Generate widget'
+  requirements:
+    _permission: 'access generate dge_widget'

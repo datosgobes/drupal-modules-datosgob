@@ -1,0 +1,8 @@
+name: DGE USER REPORT INACTIVITY
+description: "User send add a action of report inactivity"
+type: module
+core_version_requirement: ^10
+package: "DGE"
+configure: dge_user_report_inactivity.config_form
+dependencies:
+  - drupal:views_bulk_operations

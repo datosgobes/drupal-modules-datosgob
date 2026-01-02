@@ -1,0 +1,5 @@
+access generate dge_widget:
+  title: 'Administrar configuración DGE Widget'
+
+access dge_widget:
+  title: 'Acceder a los datos de DGE Widget'

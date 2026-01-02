@@ -1,0 +1,6 @@
+dge_broken_links_ckan.broken_links_views:
+  title: 'Broken Links'
+  menu_name: main
+  description: ''
+  route_name: dge_broken_links_ckan.broken_links_views
+  weight: 1

@@ -1,0 +1,13 @@
+dge_data_request_enabled: ''
+dge_data_request_email_subject: ''
+dge_data_request_email_content: ''
+dge_data_request_published_org_enabled: ''
+dge_data_request_published_org_email_subject: ''
+dge_data_request_published_org_email_content: ''
+dge_data_request_published_user_enabled: ''
+dge_data_request_published_user_email_subject: ''
+dge_data_request_published_user_email_content: ''
+dge_data_request_published_email_enabled: ''
+dge_data_request_published_email_subject: ''
+dge_data_request_published_email_content: ''
+

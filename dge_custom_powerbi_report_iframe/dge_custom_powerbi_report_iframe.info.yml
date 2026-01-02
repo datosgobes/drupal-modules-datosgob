@@ -1,0 +1,9 @@
+name: DGE Custom PowerBI Report Iframe
+description: "Customized url with user id for iframe"
+type: module
+core_version_requirement: ^10
+package: "DGE"
+dependencies:
+  - dge_user:dge_user
+  - dge_ckan:dge_ckan
+configure: dge_custom_powerbi_report_iframe.config_form

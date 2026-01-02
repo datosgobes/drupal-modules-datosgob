@@ -1,0 +1,549 @@
+<?php
+
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_basic_settings (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+use \Drupal\field\Entity\FieldStorageConfig;
+use \Drupal\field\Entity\FieldConfig;
+
+/**
+ * Change node__field_clave_del_exito from string_long to text_with_summary type.
+ */
+function dge_basic_settings_update_8001() {
+  $database = \Drupal::database();
+  $table = 'node__field_clave_del_exito';
+  $entity_type = 'node';
+  $field_name = 'field_clave_del_exito';
+
+  $field_storage = FieldStorageConfig::loadByName($entity_type, $field_name);
+
+  if (is_null($field_storage)) {
+    return;
+  }
+
+  $rows = NULL;
+
+  if ($database->schema()->tableExists($table)) {
+    // The table data to restore after the update is completed.
+    $rows = $database->select($table, 'n')
+      ->fields('n')
+      ->execute()
+      ->fetchAll();
+  }
+
+  $new_fields = array();
+
+  foreach ($field_storage->getBundles() as $bundle => $label) {
+    $field = FieldConfig::loadByName($entity_type, $bundle, $field_name);
+    $new_field = $field->toArray();
+    $new_field['field_type'] = 'text_with_summary';
+    $new_field['settings'] = array();
+
+    $new_fields[] = $new_field;
+  }
+
+  $new_field_storage = $field_storage->toArray();
+  $new_field_storage['type'] = 'text_with_summary';
+  $new_field_storage['settings'] = array(
+    'display_summary' => FALSE,
+    'required_summary' => FALSE,
+    'allowed_formats' => ['basic_html', 'full_html', 'plain_text'],
+  );
+
+  $field_storage->delete();
+
+  field_purge_batch(10);
+
+  $new_field_storage = FieldStorageConfig::create($new_field_storage);
+  $new_field_storage->save();
+
+  foreach ($new_fields as $new_field) {
+    $new_field = FieldConfig::create($new_field);
+    $new_field->save();
+  }
+
+  if (!is_null($rows)) {
+    foreach ($rows as $row) {
+      $database->insert($table)
+        ->fields((array) $row)
+        ->execute();
+    }
+  }
+
+}
+
+/**
+ * Change node__field_clientes from string_long to text_with_summary type.
+ */
+function dge_basic_settings_update_8002() {
+  $database = \Drupal::database();
+  $table = 'node__field_clientes';
+  $entity_type = 'node';
+  $field_name = 'field_clientes';
+
+  $field_storage = FieldStorageConfig::loadByName($entity_type, $field_name);
+
+  if (is_null($field_storage)) {
+    return;
+  }
+
+  $rows = NULL;
+
+  if ($database->schema()->tableExists($table)) {
+    $rows = $database->select($table, 'n')
+      ->fields('n')
+      ->execute()
+      ->fetchAll();
+  }
+
+  $new_fields = array();
+
+  foreach ($field_storage->getBundles() as $bundle => $label) {
+    $field = FieldConfig::loadByName($entity_type, $bundle, $field_name);
+    $new_field = $field->toArray();
+    $new_field['field_type'] = 'text_with_summary';
+    $new_field['settings'] = array();
+
+    $new_fields[] = $new_field;
+  }
+
+  $new_field_storage = $field_storage->toArray();
+  $new_field_storage['type'] = 'text_with_summary';
+  $new_field_storage['settings'] = array(
+    'display_summary' => FALSE,
+    'required_summary' => FALSE,
+    'allowed_formats' => array('full_html', 'basic_html', 'plain_text'),
+  );
+
+  $field_storage->delete();
+
+  field_purge_batch(10);
+
+  $new_field_storage = FieldStorageConfig::create($new_field_storage);
+  $new_field_storage->save();
+
+  foreach ($new_fields as $new_field) {
+    $new_field = FieldConfig::create($new_field);
+    $new_field->save();
+  }
+.
+  if (!is_null($rows)) {
+    foreach ($rows as $row) {
+      $database->insert($table)
+        ->fields((array) $row)
+        ->execute();
+    }
+  }
+
+}
+
+/**
+ * Change node__field_crecimiento from string_long to text_with_summary type.
+ */
+function dge_basic_settings_update_8003() {
+  $database = \Drupal::database();
+  $table = 'node__field_crecimiento';
+  $entity_type = 'node';
+  $field_name = 'field_crecimiento';
+
+  $field_storage = FieldStorageConfig::loadByName($entity_type, $field_name);
+
+  if (is_null($field_storage)) {
+    return;
+  }
+
+  $rows = NULL;
+
+  if ($database->schema()->tableExists($table)) {
+    $rows = $database->select($table, 'n')
+      ->fields('n')
+      ->execute()
+      ->fetchAll();
+  }
+
+  $new_fields = array();
+
+  foreach ($field_storage->getBundles() as $bundle => $label) {
+    $field = FieldConfig::loadByName($entity_type, $bundle, $field_name);
+    $new_field = $field->toArray();
+    $new_field['field_type'] = 'text_with_summary';
+    $new_field['settings'] = array();
+
+    $new_fields[] = $new_field;
+  }
+
+  $new_field_storage = $field_storage->toArray();
+  $new_field_storage['type'] = 'text_with_summary';
+  $new_field_storage['settings'] = array(
+    'display_summary' => FALSE,
+    'required_summary' => FALSE,
+    'allowed_formats' => ['basic_html', 'full_html', 'plain_text'],
+  );
+
+  $field_storage->delete();
+
+  field_purge_batch(10);
+
+  $new_field_storage = FieldStorageConfig::create($new_field_storage);
+  $new_field_storage->save();
+
+  foreach ($new_fields as $new_field) {
+    $new_field = FieldConfig::create($new_field);
+    $new_field->save();
+  }
+
+  if (!is_null($rows)) {
+    foreach ($rows as $row) {
+      $database->insert($table)
+        ->fields((array) $row)
+        ->execute();
+    }
+  }
+
+}
+
+/**
+ * Change node__field_datos_abiertos_utilizados from string_long to text_with_summary type.
+ */
+function dge_basic_settings_update_8004() {
+  $database = \Drupal::database();
+  $table = 'node__field_datos_abiertos_utilizados';
+  $entity_type = 'node';
+  $field_name = 'field_datos_abiertos_utilizados';
+
+  $field_storage = FieldStorageConfig::loadByName($entity_type, $field_name);
+
+  if (is_null($field_storage)) {
+    return;
+  }
+
+  $rows = NULL;
+
+  if ($database->schema()->tableExists($table)) {
+    $rows = $database->select($table, 'n')
+      ->fields('n')
+      ->execute()
+      ->fetchAll();
+  }
+
+  $new_fields = array();
+
+  foreach ($field_storage->getBundles() as $bundle => $label) {
+    $field = FieldConfig::loadByName($entity_type, $bundle, $field_name);
+    $new_field = $field->toArray();
+    $new_field['field_type'] = 'text_with_summary';
+    $new_field['settings'] = array();
+
+    $new_fields[] = $new_field;
+  }
+
+  $new_field_storage = $field_storage->toArray();
+  $new_field_storage['type'] = 'text_with_summary';
+  $new_field_storage['settings'] = array(
+    'display_summary' => FALSE,
+    'required_summary' => FALSE,
+    'allowed_formats' => ['basic_html', 'full_html', 'plain_text'],
+  );
+
+  $field_storage->delete();
+
+  field_purge_batch(10);
+
+  $new_field_storage = FieldStorageConfig::create($new_field_storage);
+  $new_field_storage->save();
+
+  foreach ($new_fields as $new_field) {
+    $new_field = FieldConfig::create($new_field);
+    $new_field->save();
+  }
+
+  if (!is_null($rows)) {
+    foreach ($rows as $row) {
+      $database->insert($table)
+        ->fields((array) $row)
+        ->execute();
+    }
+  }
+
+}
+
+
+/**
+ * Change node__field_modelo_de_comercializacion from string_long to text_with_summary type.
+ */
+function dge_basic_settings_update_8005() {
+  $database = \Drupal::database();
+  $table = 'node__field_modelo_de_comercializacion';
+  $entity_type = 'node';
+  $field_name = 'field_modelo_de_comercializacion';
+
+  $field_storage = FieldStorageConfig::loadByName($entity_type, $field_name);
+
+  if (is_null($field_storage)) {
+    return;
+  }
+
+  $rows = NULL;
+
+  if ($database->schema()->tableExists($table)) {
+    $rows = $database->select($table, 'n')
+      ->fields('n')
+      ->execute()
+      ->fetchAll();
+  }
+
+  $new_fields = array();
+
+  foreach ($field_storage->getBundles() as $bundle => $label) {
+    $field = FieldConfig::loadByName($entity_type, $bundle, $field_name);
+    $new_field = $field->toArray();
+    $new_field['field_type'] = 'text_with_summary';
+    $new_field['settings'] = array();
+
+    $new_fields[] = $new_field;
+  }
+
+  $new_field_storage = $field_storage->toArray();
+  $new_field_storage['type'] = 'text_with_summary';
+  $new_field_storage['settings'] = array(
+    'display_summary' => FALSE,
+    'required_summary' => FALSE,
+    'allowed_formats' => ['basic_html', 'full_html', 'plain_text'],
+  );
+
+  $field_storage->delete();
+
+  field_purge_batch(10);
+
+  $new_field_storage = FieldStorageConfig::create($new_field_storage);
+  $new_field_storage->save();
+
+  foreach ($new_fields as $new_field) {
+    $new_field = FieldConfig::create($new_field);
+    $new_field->save();
+  }
+
+  if (!is_null($rows)) {
+    foreach ($rows as $row) {
+      $database->insert($table)
+        ->fields((array) $row)
+        ->execute();
+    }
+  }
+
+}
+
+
+/**
+ * Change node__field_mas_informacion from string_long to text_with_summary type.
+ */
+function dge_basic_settings_update_8006() {
+  $database = \Drupal::database();
+  $table = 'node__field_mas_informacion';
+  $entity_type = 'node';
+  $field_name = 'field_mas_informacion';
+
+  $field_storage = FieldStorageConfig::loadByName($entity_type, $field_name);
+
+  if (is_null($field_storage)) {
+    return;
+  }
+
+  $rows = NULL;
+
+  if ($database->schema()->tableExists($table)) {
+    $rows = $database->select($table, 'n')
+      ->fields('n')
+      ->execute()
+      ->fetchAll();
+  }
+
+  $new_fields = array();
+
+  foreach ($field_storage->getBundles() as $bundle => $label) {
+    $field = FieldConfig::loadByName($entity_type, $bundle, $field_name);
+    $new_field = $field->toArray();
+    $new_field['field_type'] = 'text_with_summary';
+    $new_field['settings'] = array();
+
+    $new_fields[] = $new_field;
+  }
+
+  $new_field_storage = $field_storage->toArray();
+  $new_field_storage['type'] = 'text_with_summary';
+  $new_field_storage['settings'] = array(
+    'display_summary' => FALSE,
+    'required_summary' => FALSE,
+    'allowed_formats' => ['basic_html', 'full_html', 'plain_text'],
+  );
+
+  $field_storage->delete();
+
+  field_purge_batch(10);
+
+  $new_field_storage = FieldStorageConfig::create($new_field_storage);
+  $new_field_storage->save();
+
+  foreach ($new_fields as $new_field) {
+    $new_field = FieldConfig::create($new_field);
+    $new_field->save();
+  }
+
+  if (!is_null($rows)) {
+    foreach ($rows as $row) {
+      $database->insert($table)
+        ->fields((array) $row)
+        ->execute();
+    }
+  }
+
+}
+
+
+/**
+ * Change node__field_planes_de_futuro from string_long to text_with_summary type.
+ */
+function dge_basic_settings_update_8007() {
+  $database = \Drupal::database();
+  $table = 'node__field_planes_de_futuro';
+  $entity_type = 'node';
+  $field_name = 'field_planes_de_futuro';
+
+  $field_storage = FieldStorageConfig::loadByName($entity_type, $field_name);
+
+  if (is_null($field_storage)) {
+    return;
+  }
+
+  $rows = NULL;
+
+  if ($database->schema()->tableExists($table)) {
+    $rows = $database->select($table, 'n')
+      ->fields('n')
+      ->execute()
+      ->fetchAll();
+  }
+
+  $new_fields = array();
+
+  foreach ($field_storage->getBundles() as $bundle => $label) {
+    $field = FieldConfig::loadByName($entity_type, $bundle, $field_name);
+    $new_field = $field->toArray();
+    $new_field['field_type'] = 'text_with_summary';
+    $new_field['settings'] = array();
+
+    $new_fields[] = $new_field;
+  }
+
+  $new_field_storage = $field_storage->toArray();
+  $new_field_storage['type'] = 'text_with_summary';
+  $new_field_storage['settings'] = array(
+    'display_summary' => FALSE,
+    'required_summary' => FALSE,
+    'allowed_formats' => ['basic_html', 'full_html', 'plain_text'],
+  );
+
+  $field_storage->delete();
+
+
+  field_purge_batch(10);
+
+  $new_field_storage = FieldStorageConfig::create($new_field_storage);
+  $new_field_storage->save();
+
+  foreach ($new_fields as $new_field) {
+    $new_field = FieldConfig::create($new_field);
+    $new_field->save();
+  }
+
+  if (!is_null($rows)) {
+    foreach ($rows as $row) {
+      $database->insert($table)
+        ->fields((array) $row)
+        ->execute();
+    }
+  }
+
+}
+
+/**
+ * Change node__field_principales_productos_y_se from string_long to text_with_summary type.
+ */
+function dge_basic_settings_update_8008() {
+  $database = \Drupal::database();
+  $table = 'node__field_principales_productos_y_se';
+  $entity_type = 'node';
+  $field_name = 'field_principales_productos_y_se';
+
+  $field_storage = FieldStorageConfig::loadByName($entity_type, $field_name);
+
+  if (is_null($field_storage)) {
+    return;
+  }
+
+  $rows = NULL;
+
+  if ($database->schema()->tableExists($table)) {
+    $rows = $database->select($table, 'n')
+      ->fields('n')
+      ->execute()
+      ->fetchAll();
+  }
+
+  $new_fields = array();
+
+  foreach ($field_storage->getBundles() as $bundle => $label) {
+    $field = FieldConfig::loadByName($entity_type, $bundle, $field_name);
+    $new_field = $field->toArray();
+    $new_field['field_type'] = 'text_with_summary';
+    $new_field['settings'] = array();
+
+    $new_fields[] = $new_field;
+  }
+
+  $new_field_storage = $field_storage->toArray();
+  $new_field_storage['type'] = 'text_with_summary';
+  $new_field_storage['settings'] = array(
+    'display_summary' => FALSE,
+    'required_summary' => FALSE,
+    'allowed_formats' => ['basic_html', 'full_html', 'plain_text'],
+  );
+
+  $field_storage->delete();
+
+  field_purge_batch(10);
+
+  $new_field_storage = FieldStorageConfig::create($new_field_storage);
+  $new_field_storage->save();
+
+  foreach ($new_fields as $new_field) {
+    $new_field = FieldConfig::create($new_field);
+    $new_field->save();
+  }
+
+  if (!is_null($rows)) {
+    foreach ($rows as $row) {
+      $database->insert($table)
+        ->fields((array) $row)
+        ->execute();
+    }
+  }
+
+}

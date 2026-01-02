@@ -1,0 +1,9 @@
+name: DGE Search
+description: "Customize search form"
+type: module
+core_version_requirement: ^10
+package: "DGE"
+dependencies:
+  - dge_ckan:dge_ckan
+  - drupal:views
+  - facets:facets

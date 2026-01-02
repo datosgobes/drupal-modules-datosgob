@@ -1,0 +1,3 @@
+access export csv publicadores:
+  title: 'Acceder a la exportación de CSV de publicadores'
+  description: 'Permite a ciertos roles exportar datos de publicadores a CSV'

@@ -1,0 +1,7 @@
+dge_email_footer_header.config_form:
+  path: "admin/config/dge/email/config"
+  defaults:
+    _title: "DGE Custom header and footer email"
+    _form: '\Drupal\dge_email_footer_header\Form\DgeHeaderFooterEmailAdminConfigForm'
+  requirements:
+    _permission: "administer site configuration"

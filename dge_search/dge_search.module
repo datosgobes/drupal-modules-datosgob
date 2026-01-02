@@ -1,0 +1,128 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_search (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\Core\Url;
+use Drupal\node\Entity\NodeType;
+use Drupal\facets\Entity\Facet;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\views\Views;
+
+
+function getTaxonomyTermsOptions($vocabulary_machine_name) {
+  $terms = [
+    "" => t("All sections"),
+    "custom_content_type_ckan" => t("Catálogo de datos"),
+  ];
+  $entityTypeManager = \Drupal::service('entity_type.manager');
+  $taxonomy_storage = $entityTypeManager->getStorage('taxonomy_term');
+  $query = $taxonomy_storage->getQuery()->accessCheck(FALSE); 
+  $query->condition('vid', $vocabulary_machine_name);
+  $tids = $query->execute();
+  $taxonomy_terms = Term::loadMultiple($tids);
+
+  $current_language = \Drupal::languageManager()->getCurrentLanguage()->getId();
+
+  foreach ($taxonomy_terms as $taxonomy_term) {
+    
+
+    $view_id = $taxonomy_term->get('field_view_relacionada')->getString();
+    $facet_url = $taxonomy_term->getTranslation($current_language)->get('field_view_with_facet_url')->getString();
+    if($view_id != 'buscador'){
+      $view = Views::getView($view_id);
+      if ($facet_url) {
+        $clean_url = Url::fromUri($facet_url)->toString();
+        $translated_terms[$clean_url] = $taxonomy_term->getTranslation($current_language)->getName();
+
+      } elseif ($view) {
+        $view->setDisplay('page_1'); 
+        $absolute_url = $view->display_handler->getOption('path');
+        $translated_terms[$absolute_url] = $taxonomy_term->getTranslation($current_language)->getName();
+      }
+    }
+  }
+  asort($translated_terms);
+  $terms += $translated_terms;
+
+  return $terms;
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ * @param $form
+ * @param $form_state
+ * @param $form_id
+ */
+function dge_search_form_search_block_form_alter(&$form, &$form_state, $form_id) {
+
+  $form['#cache'] = ['max-age' => 0];
+  $form['#action'] = \Drupal\Core\Url::fromRoute('dge_search.search')->toString();
+
+  $text = \Drupal::request()->query->get('text');
+
+   $form['keys'] = [
+    '#type' => 'textfield',
+    '#default_value' => $text ? $text : NULL,
+    '#attributes' => [
+      'minlength' => 3,
+    ],
+    '#required' => true
+  ];
+
+  $form['content_type'] = array(
+    '#type'             => 'select',
+    '#target_type'      => 'taxonomy_term',
+    '#position'         => 'left',
+    '#tags'             => true,
+    '#options'          => getTaxonomyTermsOptions('buscador'),
+  );
+
+}
+
+/**
+ * Implements hook_block_view_alter().
+ */
+function dge_search_block_view_alter(array &$build, \Drupal\Core\Block\BlockPluginInterface $block) {
+  if ($block->getBaseId() == 'search_form_block') {
+    $build['#cache']['max-age'] = 0;
+  }
+}
+
+
+function dge_search_preprocess_views_view(array &$variables) {
+  $view = $variables['view'];
+  $id = $view->storage->id();
+
+  if($id == 'buscador'){
+    $variables['total_result_search'] = $view->pager->total_items;
+    $args=$view->args;
+    $view = $variables['view'];
+    $result_entities = [];
+
+    foreach ($view->result as $row) {
+        $entity = $row->_entity;
+        $fields = $entity->toArray();
+        $result_entities[] = $fields['type'][0]['target_id'];
+    }
+    $attributes_exposed_form['target_list'] =  sort($result_entities);
+    $variables['exposed']['#attributes'] = $attributes_exposed_form;
+  }
+}

@@ -1,0 +1,106 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_semantic (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use Drupal\Core\Path\PathMatcherInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Url;
+use Drupal\node\NodeInterface;
+use Symfony\Component\HttpFoundation\Request;
+
+
+/**
+ * Implements hook_token_info().
+ *
+ */
+function dge_semantic_token_info() {
+  $types['dge'] = array(
+    'name' => t("DGE"),
+    'description' => t("Tokens for DGE values."),
+  );
+  return array(
+    'types' => $types,
+    'tokens' => array(
+      'dge' => array(
+        'canonical-dge-url' => array(
+          'name' => t('DGE Canonical URL'),
+          'description' => t('URL Absolute Canonical URL for SEO'),
+        )
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_tokens().
+ *
+ */
+function dge_semantic_tokens($type, $tokens, array $data = [], array $options = []) {
+  $replacements = [];
+  $sanitize = !empty($options['sanitize']);
+  $path_matcher = \Drupal::service('path.matcher');
+  $alias_manager = \Drupal::service('path_alias.manager');
+  $route_match = \Drupal::routeMatch();
+  $language_manager = \Drupal::languageManager();
+ 
+
+  if ($type == 'dge') {
+    foreach ($tokens as $name => $original) {
+      if ($name == 'canonical-dge-url') {
+        $path = $path_matcher->isFrontPage() ? '<front>' : \Drupal::request()->getUri();
+        $default_language = $language_manager->getDefaultLanguage();
+
+        $node = $route_match->getParameter('node');
+        if ($node instanceof NodeInterface) {
+          if ($node->language()->getId() == 'es') {
+            $url = Url::fromRoute('entity.node.canonical', ['node' => $node->id()], ['absolute' => TRUE, 'language' => $language_manager->getLanguage('es')])->toString();
+          } else {
+            $translated = FALSE;
+            foreach ($node->getTranslationLanguages() as $langcode => $language) {
+              if ($langcode == 'es') {
+                $translated_node = $node->getTranslation('es');
+                $url = Url::fromRoute('entity.node.canonical', ['node' => $translated_node->id()], ['absolute' => TRUE, 'language' => $language_manager->getLanguage('es')])->toString();
+                $translated = TRUE;
+                break;
+              }
+            }
+            if (!$translated) {
+              $url = Url::fromRoute('entity.node.canonical', ['node' => $node->id()], ['absolute' => TRUE, 'language' => $language_manager->getLanguage('es')])->toString();
+            }
+          }
+        }
+        else {
+          if (strpos($path, 'http') === 0) {
+            $url = Url::fromUri($path)->toString();
+          }
+          else {
+            $url = Url::fromUserInput($path, ['absolute' => TRUE, 'language' => $language_manager->getLanguage('es')])->toString();
+          }
+        }
+        $replacements[$original] = $url;
+      }
+    }
+  }
+  return $replacements;
+}
+function _get_canonical_dge_url($path, $language = NULL){
+  $url = url($path, array('absolute' => TRUE, 'language' => i18n_language('es')));
+  return str_replace('http://', 'https://', $url);
+}

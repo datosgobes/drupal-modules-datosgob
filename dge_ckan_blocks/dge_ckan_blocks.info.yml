@@ -1,0 +1,9 @@
+name: DGE Ckan Blocks
+type: module
+description: 'Bloques con información de CKAN'
+package: 'DGE'
+version: '1.0'
+core_version_requirement: ^9 || ^10
+configure: dge_ckan_blocks.config_form
+dependencies:
+  - dge_ckan:dge_ckan

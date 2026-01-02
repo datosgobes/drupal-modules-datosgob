@@ -1,0 +1,15 @@
+dge_search.search:
+  path: '/buscador'
+  defaults:
+    _controller: '\Drupal\dge_search\Controller\DGESearchController::handleSearch'
+    _title: 'DGE Search'
+  requirements:
+    _permission: 'access content'
+
+dge_search.routing.api_search:
+  path: "/v1/search"
+  defaults:
+    _title: "DGE Search get Sections"
+    _controller: 'dge_search.services_api_sections:getSectionsByTabsCKAN'
+  requirements:
+    _permission: "access content"

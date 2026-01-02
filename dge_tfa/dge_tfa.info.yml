@@ -1,0 +1,8 @@
+name: DGE TFA
+type: module
+description: 'Customization of the TFA module'
+package: 'DGE'
+core_version_requirement: ^10
+dependencies:
+  - tfa:tfa
+  - tfa_email_otp:tfa_email_otp

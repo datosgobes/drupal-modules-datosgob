@@ -1,0 +1,6 @@
+services:
+  dge_node_add_restricted.deny_node_add_access_subscriber:
+    class: Drupal\dge_node_add_restricted\EventSubscriber\DenyNodeAddAccessSubscriber
+    arguments: ['@current_user', '@router.admin_context']
+    tags:
+      - { name: event_subscriber }

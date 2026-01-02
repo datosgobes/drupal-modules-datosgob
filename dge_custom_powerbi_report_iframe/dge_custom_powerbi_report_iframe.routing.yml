@@ -1,0 +1,7 @@
+dge_custom_powerbi_report_iframe.config_form:
+  path: '/admin/config/dge/powerbi_report'
+  defaults:
+    _form: '\Drupal\dge_custom_powerbi_report_iframe\Form\ConfigForm'
+    _title: 'Configuración de DGE Custom PowerBi Report Iframe'
+  requirements:
+    _permission: 'administer site configuration'

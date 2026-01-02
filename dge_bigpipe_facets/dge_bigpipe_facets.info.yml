@@ -1,0 +1,7 @@
+name: DGE Disable BigPipe for Facets
+description: 'Módulo que deshabilita el BigPipe para los bloques de Facets.'
+type: module
+core_version_requirement: ^10
+package: 'DGE'
+dependencies:
+  - drupal:facets

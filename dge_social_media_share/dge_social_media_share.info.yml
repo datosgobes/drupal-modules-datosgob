@@ -1,0 +1,6 @@
+name: DGE Social media share
+description: "Customized social media share"
+type: module
+core_version_requirement: ^10
+package: "DGE"
+

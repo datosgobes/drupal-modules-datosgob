@@ -54,9 +54,21 @@ El proceso de instalación debe seguir el modelo de despliegue de Drupal para *m
 | `dge_social_media_share` | DGE Social media share | Compartir en redes sociales personalizado |
 | `dge_tfa` | DGE TFA | Personalización del módulo *TFA* |
 | `dge_unique_role_name` | DGE Unique Role Name | Hace que el nombre del rol sea único |
-| `dge_unpublish_confirmation` | DGE Unpublish Confirmation | DGE Unpublish Confirmation |
+| `dge_unpublish_confirmation` | DGE Unpublish Confirmation | Confirmación de despublicación |
 | `dge_user` | DGE User | Funciones de usuario |
 | `dge_user_report_inactivity` | DGE USER REPORT INACTIVITY | Añade una acción para reportar inactividad del usuario |
-| `dge_views_filter_dates` | DGE Views Filter Dates | Módulo que altera los filtros de fecha en Views sumando 1 día a los filtros "Es menor o igual que". |
+| `dge_views_filter_dates` | DGE Views Filter Dates | Módulo que altera los filtros de fecha en *Views* sumando 1 día a los filtros "Es menor o igual que". |
 | `dge_webform_email_reply` | DGE Webform Email Reply | Módulo auxiliar de *webform* que permite enviar una respuesta por *email* a los envíos de contacto |
-| `dge_widget` | DGE Widget | Módulo DGE para generación de widget |
+| `dge_widget` | DGE Widget | Módulo DGE para generación de *widget* |
+
+## Historial de cambios
+
+Para ver el histórico de cambios y versiones del paquete de módulos, consulta el [CHANGELOG.md](CHANGELOG.md).
+
+## Contribución
+
+¡Las contribuciones son bienvenidas! Por favor, consulta la [Guía de Contribución](https://github.com/datosgobes/datos.gob.es/blob/master/CONTRIBUTING.md) para obtener detalles sobre cómo reportar *bugs*, sugerir mejoras y enviar *pull requests*.
+
+### Reportar vulnerabilidades de seguridad
+
+Si descubres una vulnerabilidad de seguridad, no la reportes públicamente a través de *issues*. En su lugar, consulta la [Política de Seguridad](https://github.com/datosgobes/datos.gob.es/blob/master/SECURITY.md) para obtener instrucciones sobre cómo reportarla de forma responsable.

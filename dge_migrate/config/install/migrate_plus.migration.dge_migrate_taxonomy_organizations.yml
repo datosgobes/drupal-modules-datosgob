@@ -1,0 +1,41 @@
+id: dge_migrate_taxonomy_organizations
+label: Migrate organizations taxonomy from Drupal 7 to Drupal 10
+migration_group: dge_migrate
+migration_tags:
+ - Drupal 7
+ - Content
+dependencies:
+  enforced:
+    module:
+      - dge_migrate
+
+source:
+  plugin: dge_migrate_taxonomy_organizations
+
+destination:
+  plugin: entity:taxonomy_term
+
+process:
+  # To avoid duplicated tid
+  # tid: tid
+  vid: 
+  -
+    plugin: static_map
+    source: vid
+    map:
+      3: 'organizaciones'
+  -
+    plugin: default_value
+    default_value: 'organizaciones'
+  name: name
+  description: d7_description
+  weight: weight
+  field_ckan_organization_id: d7_field_ckan_organization_id
+  field_ckan_organization_name: d7_field_ckan_organization_name
+  field_c_id_dep_ud_principal: d7_field_c_id_dep_ud_principal
+  field_c_id_ud_organica: d7_field_c_id_ud_organica
+  field_reference_id: d7_field_reference_id
+  field_root_designation_unit: d7_field_root_designation_unit
+  
+migration_dependencies:
+  optional: {  }

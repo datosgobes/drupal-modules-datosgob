@@ -1,0 +1,146 @@
+id: dge_migrate_nodes_request
+label: Custom request nodes migration from Drupal 7
+migration_group: dge_migrate
+dependencies:
+  enforced:
+    module:
+      - dge_migrate
+
+source:
+  plugin: dge_migrate_nodes
+  node_type:
+    - request
+
+destination:
+  plugin: entity:node
+  
+process:
+
+  type:
+    plugin: static_map
+    source: type
+    map:
+      'request': 'peticion_de_datos'
+  langcode:
+    plugin: static_map
+    bypass: true
+    source: language
+    map:
+      und: es
+  status: status
+
+  uid:
+    plugin: migration_lookup
+    migration: dge_migrate_users_roles
+    no_stub: true
+    source: uid
+  title: title
+  created: created
+  changed: changed
+  promote: promote
+  sticky: sticky
+  field_fecha_publicacion_contenid:
+    plugin: format_date
+    from_format: 'U'
+    to_format: 'Y-m-d\TH:i:s'
+    source: publish_d7
+
+  
+  field_descripcion: field_body
+  field_nombre_y_apellidos: field_sender_name_d7
+  field_correo_electronico: field_sender_email_d7
+  field_telefono: field_sender_phone
+  field_deseo_que_mi_nombre_y_orga: field_sender_show_data
+  field_acepto_las_condiciones_del: field_sender_terms_of_use
+  
+  field_organizacion: field_sender_company_d7
+  field_motivo_de_la_peticion: field_request_long_reason_d7
+  field_beneficios_esperados: field_request_long_benefit_d7
+  field_respuesta: field_request_answer_d7
+  field_publicador: field_request_publisher_d7
+  field_number_subscriptors: field_number_subscriptors_d7
+  field_url_del_conjunto_de_datos: request_dataset_url_d7
+
+  field_request_subscriptor:  
+   -  
+     plugin: skip_on_empty  
+     method: process  
+     source: field_request_subscriptor_d7
+   -  
+     plugin: migration_lookup  
+     # custom paragraph name
+     migration: dge_migrate_field_collection_request
+     no_stub: true  
+   -  
+     plugin: sub_process
+     process:  
+       target_id: '0'  
+       target_revision_id: '1'  
+
+  field_categoria:
+    plugin: sub_process
+    source: field_categoria_d7
+    process:
+      target_id:
+      - plugin: static_map
+        source: name
+        bypass: true
+        map:
+          'Legislación y Justicia': 'Legislación y justicia'
+          'Medio Ambiente': 'Medio ambiente'
+          'Medio rural': 'Medio Rural'
+      - plugin: entity_lookup
+        entity_type: taxonomy_term
+        bundle_key: vid
+        bundle: categorias
+        value_key: name
+
+  field_organismo_responsable:
+    plugin: migration_lookup
+    migration: dge_migrate_taxonomy_organizations
+    source: d7_tidOrganizacion
+    no_stub: true
+    fail_on_missing: false
+    default_value: null
+
+  field_estado:
+    plugin: sub_process
+    source: field_estado_d7
+    process:
+      target_id:
+      - plugin: static_map
+        source: name
+        bypass: true
+        map:
+          'En Estudio': 'En estudio'
+          'No Viable': 'No viable'
+          'Programado': 'Validado'
+          'Publicado': 'Resuelto'
+          'Parcialmente publicado': 'Resuelto'
+      - plugin: entity_lookup
+        entity_type: taxonomy_term
+        bundle_key: vid
+        bundle: estados_disponibilidad_de_datos
+        value_key: name
+
+  moderation_state: 
+      plugin: static_map
+      source: field_estado_d7
+      bypass: true
+      map:
+        'Borrador': 'draft'
+        'Recibido': 'recibido'
+        'En Estudio': 'en_estudio'
+        'No Viable': 'no_viable'
+        'Programado': 'validado'
+        'Publicado': 'published'
+        'Parcialmente publicado': 'published'
+        'Asignado': 'asignado'
+    
+migration_dependencies:
+  required:
+    - dge_migrate_file_managed
+    - dge_migrate_users_roles
+    - dge_migrate_field_collection_request
+    - dge_migrate_taxonomy_organizations
+  optional: {  }

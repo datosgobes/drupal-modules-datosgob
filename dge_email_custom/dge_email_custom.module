@@ -1,0 +1,49 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_email_custom (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function dge_email_custom_form_user_register_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $form['account']['mail']['#required'] = TRUE;
+}
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function dge_email_custom_element_info_alter(array &$types) {
+  if (isset($types['email'])) {
+    $types['email']['#element_validate'][] = 'validateEmail';
+  }
+}
+
+function validateEmail(&$element, &$form_state, &$complete_form) {
+  $value = trim($element['#value']);
+  $form_state->setValueForElement($element, $value);
+
+  if (empty($value)) {
+      return;
+  }
+
+  if ($value !== '' && !\Drupal::service('email.validator')->isValid($value) || !filter_var($value, FILTER_VALIDATE_EMAIL)) {
+      $form_state->setError($element, t('Enter a valid email. Ex: abc@xyz.com', ['%mail' => $value]));
+  }
+}

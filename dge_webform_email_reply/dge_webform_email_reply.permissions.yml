@@ -1,0 +1,3 @@
+'send email replies to contact webforms':
+  title: 'View and send email replies to Contact webforms'
+  description: 'Allows user to view and send emails in reply to contact webform. Generally an administrative permission.'

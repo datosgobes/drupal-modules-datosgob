@@ -1,0 +1,12 @@
+dge_sendinblue.config_form:
+  title: 'DGE SendinBlue'
+  parent: dge_basic_settings.admin
+  description: 'Configuración listas SendinBlue.'
+  route_name: dge_sendinblue.config_form
+
+dge_sendinblue.unsubscription_form:
+  title: 'DGE Sendinblue Unsubscription Form'
+  menu_name: main
+  description: 'Formulario de baja de Sendinblue.'
+  route_name: dge_sendinblue.unsubscription_form
+

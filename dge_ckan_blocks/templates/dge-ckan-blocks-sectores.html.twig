@@ -1,0 +1,248 @@
+{#
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_ckan_blocks (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+#}
+
+<div class="dge-sectores-initiatives">
+  <div class="grid-container">
+    <button class="carousel-arrow left-arrow" aria-label="Scroll Left">
+      &lt;
+    </button>
+    {% for sector in sectores %}
+      <div class="grid-item" 
+	  		data-sector='{
+				"title": "{{ sector.title }}",
+				"color": "{{ sector.color }}",
+				"imagen": "{{ sector.imagen }}",
+				"num_initiatives": {{ sector.num_initiatives }},
+				"num_packages": {{ sector.num_packages }},
+				"num_empresas": {{ sector.num_empresas }},
+				"num_aplicaciones": {{ sector.num_aplicaciones }},
+				"link": "{{ sector.link }}"
+			}'>
+        <div class="item-overlay">
+			<span class="sector-color" style="background-color: {{ sector.color }}"></span>
+          	<span class="sector-title">{{ sector.title }}</span>
+        </div>
+        <div class="background-image" style="background-image: url('{{ sector.imagen }}')"></div>
+      </div>
+    {% endfor %}
+    <button class="carousel-arrow right-arrow" aria-label="Scroll Right">
+      &gt;
+    </button>
+    <div class="info-panel" id="info-panel">
+      <div id="default-message">{{ 'Explore your industry and start digitizing yourself' | t }}</div>
+
+      <div id="sector-details" style="display: none;">
+		
+		<div class="flex-display flex-column flex-gap-05">
+			<span>{{ 'Sector' | t }}</span>
+			<div class="title-sector">
+				<div id="info-color" class="sector-color"></div>
+				<h2 id="info-title" class="mt-0 mb-0 text--bold"></h2>
+			</div>
+		</div>
+
+		<div class="sector-details__content">
+			<div class="sector-details__content__item flex-display flex-column flex-gap-05">
+				<span>{{ 'Publishers' | t }}</span>
+				<span id="info-initiatives" class="x-large text--bold"></span>
+			</div>
+			<div class="sector-details__content__item flex-display flex-column flex-gap-05">
+				<span>{{ 'Data set' | t }}</span>
+				<span id="info-packages" class="x-large text--bold"></span>
+			</div>
+			<div class="sector-details__content__item flex-display flex-column flex-gap-05">
+				<span>{{ 'Companies' | t }}</span>
+				<span id="info-companies" class="x-large text--bold"></span>
+			</div>
+			<div class="sector-details__content__item flex-display flex-column flex-gap-05">
+				<span>{{ 'Applications' | t }}</span>
+				<span id="info-applications" class="x-large text--bold"></span>
+			</div>
+		</div>
+		<div class="sector-details__link flex-display flex-column ">
+			<div class="link--arrow">
+				<div class="field__item">
+					<a href="#" id="info-link">{{ 'Open sector' | t }}
+						<span class="decoration-arrow"><img src="/themes/custom/dge_theme/images/icons/decoration-arrow_yellow.svg" alt="Decoration arrow icon"></span>
+					</a>
+         
+				</div>
+			</div>
+		</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const horizontalScrollContainer = document.querySelector('.grid-container');
+  const leftArrow = document.querySelector('.carousel-arrow.left-arrow');
+  const rightArrow = document.querySelector('.carousel-arrow.right-arrow');
+
+  if (!horizontalScrollContainer) return;
+
+  let isDragging = false;
+  let startX;
+  let scrollLeft;
+
+  const startDragging = (e) => {
+    isDragging = true;
+    startX = e.pageX - horizontalScrollContainer.offsetLeft;
+    scrollLeft = horizontalScrollContainer.scrollLeft;
+    horizontalScrollContainer.classList.add('dragging');
+  };
+
+  const stopDragging = () => {
+    isDragging = false;
+    horizontalScrollContainer.classList.remove('dragging');
+  };
+
+  const dragging = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - horizontalScrollContainer.offsetLeft;
+    const walk = (x - startX) * 2; 
+    horizontalScrollContainer.scrollLeft = scrollLeft - walk;
+  };
+
+
+  const handleWheelScroll = (event) => {
+    if (window.innerWidth <= 768) {
+      event.preventDefault();
+      horizontalScrollContainer.scrollLeft += event.deltaY;
+    }
+  };
+
+
+  const scrollAmount = 200; 
+
+  const handleLeftArrowClick = () => {
+    horizontalScrollContainer.scrollLeft -= scrollAmount;
+  };
+
+  const handleRightArrowClick = () => {
+    horizontalScrollContainer.scrollLeft += scrollAmount;
+  };
+
+  const enableScrollHandlers = () => {
+    horizontalScrollContainer.addEventListener('mousedown', startDragging);
+    horizontalScrollContainer.addEventListener('mouseleave', stopDragging);
+    horizontalScrollContainer.addEventListener('mouseup', stopDragging);
+    horizontalScrollContainer.addEventListener('mousemove', dragging);
+    horizontalScrollContainer.addEventListener('wheel', handleWheelScroll);
+
+    if (leftArrow && rightArrow) {
+      leftArrow.addEventListener('click', handleLeftArrowClick);
+      rightArrow.addEventListener('click', handleRightArrowClick);
+    }
+  };
+
+  const disableScrollHandlers = () => {
+    horizontalScrollContainer.removeEventListener('mousedown', startDragging);
+    horizontalScrollContainer.removeEventListener('mouseleave', stopDragging);
+    horizontalScrollContainer.removeEventListener('mouseup', stopDragging);
+    horizontalScrollContainer.removeEventListener('mousemove', dragging);
+    horizontalScrollContainer.removeEventListener('wheel', handleWheelScroll);
+
+    if (leftArrow && rightArrow) {
+      leftArrow.removeEventListener('click', handleLeftArrowClick);
+      rightArrow.removeEventListener('click', handleRightArrowClick);
+    }
+  };
+
+  const handleResize = () => {
+    if (window.innerWidth <= 768) {
+      enableScrollHandlers();
+      if (leftArrow) leftArrow.style.display = 'block';
+      if (rightArrow) rightArrow.style.display = 'block';
+    } else {
+      disableScrollHandlers();
+      if (leftArrow) leftArrow.style.display = 'none';
+      if (rightArrow) rightArrow.style.display = 'none';
+    }
+  };
+
+  handleResize();
+  window.addEventListener('resize', handleResize);
+
+  const elements = {
+    items: document.querySelectorAll('.grid-item'),
+    infoPanel: document.getElementById('info-panel'),
+    defaultMessage: document.getElementById('default-message'),
+    sectorDetails: document.getElementById('sector-details'),
+    infoTitle: document.getElementById('info-title'),
+    infoColor: document.getElementById('info-color'),
+    infoInitiatives: document.getElementById('info-initiatives'),
+    infoPackages: document.getElementById('info-packages'),
+    infoCompanies: document.getElementById('info-companies'),
+    infoApplications: document.getElementById('info-applications'),
+    infoLink: document.getElementById('info-link'),
+  };
+
+  elements.items.forEach((item) => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      elements.items.forEach((el) => {
+        el.classList.remove('selected');
+        el.setAttribute('aria-selected', 'false');
+      });
+
+      item.classList.add('selected');
+      item.setAttribute('aria-selected', 'true');
+
+      const data = JSON.parse(item.dataset.sector);
+      elements.infoPanel.style.backgroundImage = data.imagen ? `url('${data.imagen}')` : '';
+      elements.infoTitle.textContent = data.title || '';
+      elements.infoColor.style.backgroundColor = data.color || '#ccc';
+      elements.infoInitiatives.textContent = data.num_initiatives || 0;
+     
+      const rawNum = data.num_packages.toString(); 
+      elements.infoPackages.textContent = ensureThreeDecimals(rawNum);
+      elements.infoCompanies.textContent = data.num_empresas || 0;
+      elements.infoApplications.textContent = data.num_aplicaciones || 0;
+      if (data.link && data.link.trim() !== '') {
+            elements.infoLink.href = data.link;
+            elements.infoLink.parentElement.parentElement.style.display = 'block'; 
+        } else {
+            elements.infoLink.parentElement.parentElement.style.display = 'none'; 
+        }
+
+      elements.defaultMessage.style.display = 'none';
+      elements.sectorDetails.style.display = 'flex';
+    });
+  });
+});
+
+
+function ensureThreeDecimals(numStr) {
+    if (numStr.includes('.')) {
+        let [integerPart, decimalPart] = numStr.split('.');
+        decimalPart = decimalPart.padEnd(3, '0');        
+        return `${integerPart}.${decimalPart}`;
+    } else{
+      return numStr;
+    }
+}
+
+</script>

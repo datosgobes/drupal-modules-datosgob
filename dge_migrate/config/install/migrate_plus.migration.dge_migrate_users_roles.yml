@@ -1,0 +1,57 @@
+id: dge_migrate_users_roles
+label: Migrate users from Drupal 7 to Drupal 10
+migration_group: dge_migrate
+migration_tags:
+ - Drupal 7
+ - Content
+dependencies:
+  enforced:
+    module:
+      - dge_migrate
+
+source:
+  plugin: dge_migrate_users_roles
+  constants:
+    existing_users_skip: true
+
+destination:
+  plugin: entity:user
+
+process:
+  # To avoid duplicated uid
+  # uid: uid
+  name: name
+  pass: pass
+  mail: mail
+  created: created
+  changed: changed
+  status: status
+  access: access
+  login: login
+  timezone: timezone
+  langcode: language
+  preferred_langcode: language
+  preferred_admin_langcode: language
+  init: init
+  roles:
+    plugin: dge_migrate_role_map
+    source: roles
+  field_nombre: d7_nombre
+  field_apellidos: d7_apellidos
+  field_telefono: d7_telefono
+  field_organizacion: 
+    plugin: migration_lookup
+    migration: dge_migrate_taxonomy_organizations
+    source: d7_tidOrganizacion
+    no_stub: true
+    fail_on_missing: false
+    default_value: null
+  field_posicion: d7_posicion
+  field_comentarios_adicionales: d7_comentarios_adicionales
+  field_terminos_de_servicio: d7_terminosServicio
+  field_ckan_user_id: d7_ckan_user_id
+  field_ckan_user_name: d7_ckan_user_name
+migration_dependencies:
+  required:
+    - dge_migrate_taxonomy_organizations
+  optional: {  }

@@ -1,0 +1,7 @@
+dge_comments.routing.api_comments:
+  path: "/comments/dge/data_comments"
+  defaults:
+    _title: "DGE Data test Config"
+    _controller: 'dge_comments.services_api_comments:getCommentsCkan'
+  requirements:
+    _permission: "access content"

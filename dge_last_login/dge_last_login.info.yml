@@ -1,0 +1,5 @@
+name: DGE Last Login
+type: module
+description: Display the last login time for current logged in user
+package: DGE
+core_version_requirement: ^10

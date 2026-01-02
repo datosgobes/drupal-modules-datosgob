@@ -1,0 +1,103 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_email_delete_confirmation (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_alter ().
+ */
+function dge_email_delete_confirmation_form_alter (&$form, &$form_state, $form_id) {
+
+  $targetFormIds = [
+    'node_aplicacion_delete_form',
+    'node_empresa_reutilizadora_delete_form',
+    'node_peticion_de_datos_delete_form',
+  ];
+
+  if (in_array($form_id, $targetFormIds)) {
+    $form['send_email_notification'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Notificación por email'),
+    ];
+
+    $form['email_subject'] = [
+    '#type' => 'textfield',
+    '#title' => t('Email title'),
+    '#states' => [
+        'visible' => [
+        ':input[name="send_email_notification"]' => ['checked' => TRUE],
+        ],
+        'required' => [
+        ':input[name="send_email_notification"]' => ['checked' => true]
+        ]
+    ],
+    ];
+
+    $form['email_body'] = [
+    '#type' => 'textarea',
+    '#title' => t('Email body'),
+    '#states' => [
+        'visible' => [
+        ':input[name="send_email_notification"]' => ['checked' => TRUE],
+        ],
+        'required' => [
+        ':input[name="send_email_notification"]' => ['checked' => true]
+        ]
+    ],
+    ];
+
+    $form['actions']['submit']['#submit'][] = '_content_delete_form_submit';
+  }
+
+}
+
+/**
+ * Implements hook_form_submit().
+ */
+function _content_delete_form_submit(array $form, FormStateInterface $form_state) {
+  if ($form_state->getValue('send_email_notification')) {
+
+    $mailManager = \Drupal::service('plugin.manager.mail');
+    $module = 'dge_email_delete_confirmation';
+    $key = 'dge_email_delete_confirmation_content_delete';
+
+    $content = $form_state->getFormObject()->getEntity();
+    $to = $content->get('field_correo_electronico')->value;
+
+    $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
+    $params['subject'] = $form_state->getValue('email_subject');
+    $params['message'] = $form_state->getValue('email_body');
+    $send = TRUE;
+
+    $mailManager->mail($module, $key, $to, $langcode, $params, NULL, $send);
+  }
+}
+
+/**
+ * Implements hook_mail().
+ */
+function dge_email_delete_confirmation_mail($key, &$message, $params) {
+  switch ($key) {
+    case 'dge_email_delete_confirmation_content_delete':
+      $message['subject'] = $params['subject'];
+      $message['body'][] = $params['message'];
+      break;
+  }
+}

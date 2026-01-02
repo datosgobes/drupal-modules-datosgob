@@ -1,0 +1,16 @@
+dge_user.dge_user_get_role_by_name_route:
+  path: '/test/dge_user_get_role_by_name/{role}'
+  defaults:
+    _controller: '\Drupal\dge_user\Controller\dgeUserGetRoleByNameController::dgeUserGetRoleByNameWrapper'
+  requirements:
+    _permission: 'access content'
+    role: '[1-8]'
+
+dge_user.dge_user_has_role_name_route:
+  path: '/test/dge_user_has_role_name/{account}/{role}'
+  defaults:
+    _controller: '\Drupal\dge_user\Controller\dgeUserHasRoleNameController::dgeUserHasRoleNameWrapper'
+  requirements:
+    _permission: 'access content'
+    account: '[0-1]'
+    role: '[1-8]'

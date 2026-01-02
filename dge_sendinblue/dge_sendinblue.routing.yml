@@ -1,0 +1,15 @@
+dge_sendinblue.config_form:
+  path: "/admin/config/dge/sendinblue"
+  defaults:
+    _title: "DGE SendinBlue Config"
+    _form: '\Drupal\dge_sendinblue\Form\DgeSendinBlueAdminConfigForm'
+  requirements:
+    _permission: "administer sendinblue config"
+
+dge_sendinblue.unsubscription_form:
+  path: "/formulario-de-baja"
+  defaults:
+    _title: "Unsubscription Form"
+    _form: '\Drupal\dge_sendinblue\Form\DgeSendinBlueUnsubscriptionForm'
+  requirements:
+    _access: 'TRUE'

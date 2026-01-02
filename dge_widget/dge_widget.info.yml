@@ -1,0 +1,7 @@
+name: DGE Widget
+type: module
+description: 'Módulo DGE para generación de widget'
+core_version_requirement: ^10 || ^9
+package: DGE
+dependencies:
+  - dge_ckan

@@ -1,0 +1,28 @@
+dge_data_request.config:
+  type: config_object
+  label: 'DGE Data Request Config'
+  mapping:
+    dge_data_request_email_subject:
+      type: text
+      label: 'Assignation request data email subject'
+    dge_data_request_email_content:
+      type: text
+      label: 'Assignation request data email content'
+    dge_data_request_published_org_email_subject:
+      type: text
+      label: 'Published data request for organizations email subject'
+    dge_data_request_published_org_email_content:
+      type: text
+      label: 'Published data request for organizations email content'
+    dge_data_request_published_user_email_subject:
+      type: text
+      label: 'Published data request for user email subject'
+    dge_data_request_published_user_email_content:
+      type: text
+      label: 'Published data request for user email content'
+    dge_data_request_published_email_subject:
+      type: text
+      label: 'Leave the data request for user email subject'
+    dge_data_request_published_email_content:
+      type: text
+      label: 'Leave the data request for user email content'

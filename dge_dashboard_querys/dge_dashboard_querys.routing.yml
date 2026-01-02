@@ -1,0 +1,161 @@
+dge_dashboard_querys.export_csv_dataset_evolution:
+  path: '/export-csv/dataset-evolution'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvDatasetEvolution'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_dataset_level_catagory_format:
+  path: '/export-csv/dataset-level-category-format'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvDatasetLevelCategoryFormat'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_dataset_by_catagory:
+  path: '/export-csv/dataset-by-category'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvDataseByCategory'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_dataset_format_distribution:
+  path: '/export-csv/dataset-format-distribution'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvDatasetFormatDistribution'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_content_type:
+  path: '/export-csv/content-type'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvContentType'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_visit_evolution:
+  path: '/export-csv/visit/evolution'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvVisitEvolution'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_visit_national_dataset:
+  path: '/export-csv/visit/national-dataset'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvVisitNationalDataset'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_visit_contents:
+  path: '/export-csv/visit/contents'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvVisitContents'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_visit_sectors:
+  path: '/export-csv/visit/sectors'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvVisitSectors'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_visit_more_view:
+  path: '/export-csv/visit/more-view'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvVisitMoreView'
+  requirements:
+    _permission: 'access content'
+
+
+dge_dashboard_querys.export_csv_admin_dataset_evolution:
+  path: '/export-csv/dataset-admin/evolution'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvDatasetAdminEvolution'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_admin_dataset_organismos:
+  path: '/export-csv/dataset-admin/organismos'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvDatasetAdminOrganismos'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_admin_dataset_distributions:
+  path: '/export-csv/dataset-admin/distributions'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvDatasetAdminDistributions'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_admin_visit_more_view:
+  path: '/export-csv/visit-admin/more-view'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvVisitAdminMoreView'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_admin_content_comments_received:
+  path: '/export-csv/content-admin/comments-received'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvContentAdminCommentsReceived'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_admin_publicadores_evolution:
+  path: '/export-csv/publicadores-admin/evolution'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvPublicadoresAdminEvolution'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_admin_publicadores_level_administration:
+  path: '/export-csv/publicadores-admin/level-administration'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvPublicadoresAdminLevelAdministration'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_admin_content_by_type:
+  path: '/export-csv/publicadores-admin/content_by_type'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvAdminContentByType'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_data_request_by_state:
+  path: '/export-csv/publicadores-admin/data-request-by-state'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvDataRequestByState'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_users_by_organism:
+  path: '/export-csv/publicadores-admin/users-by-organism'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvUsersByOrganism'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_users_by_administration_level:
+  path: '/export-csv/publicadores-admin/users-by-administration-level'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvUsersByAdministrationLevel'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_users_by_administration_level_and_update_form:
+  path: '/export-csv/publicadores-admin/users-by-administration-level-update-form'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvUsersByAdministrationLevelAndUpdateForm'
+  requirements:
+    _permission: 'access content'
+
+dge_dashboard_querys.export_csv_publicador:
+  path: '/export-csv/publicadores/{route}'
+  defaults:
+    _controller: 'Drupal\dge_dashboard_querys\Controller\ExportController::exportToCsvByUser'
+  requirements:
+    _permission: 'access export csv publicadores'

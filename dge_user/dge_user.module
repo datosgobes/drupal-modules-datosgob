@@ -1,0 +1,264 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_user (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\user\Entity\User;
+
+define('STATES', '#states');
+define('ACCESS', '#access');
+define('ROL_PUBLICADOR', 'publicador');
+define('ROL_REUTILIZADOR', 'reutilizador');
+define('ORGANIZATION_PERMISSION', 'edit organization fields');
+define('NON_ORGANIZATION_USERS', ['#edit-roles-reutilizador, #edit-roles-publicador' => ['checked' => false]]);
+define('ORGANIZATION_USERS', [['#edit-roles-reutilizador' => ['checked' => true]], ['#edit-roles-publicador' => ['checked' => true]]]);
+
+
+function dge_user_is_administrator_user($account)
+{
+  $roles = array(
+    'administrator',
+    'aporta',
+  );
+  foreach ($roles as $role_name) {
+    if (dge_user_has_role_name($role_name, $account)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+function dge_user_is_organization_user($account)
+{
+  $roles = array(
+    'publicador',
+    'reutilizador',
+  );
+  foreach ($roles as $role_name) {
+    if (dge_user_has_role_name($role_name, $account)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+function dge_user_is_content_editor($account)
+{
+  $roles = array(
+    'content_editor'
+  );
+  foreach ($roles as $role_name) {
+    if (dge_user_has_role_name($role_name, $account)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function dge_user_has_role_name($machine_name, ?AccountInterface $account = NULL)
+{
+  if (!$account) {
+    $account = \Drupal::currentUser()->getAccount();
+  }
+  return dge_has_role($machine_name, $account->getRoles());
+}
+
+function dge_user_has_permission($permission_name, ?AccountInterface $account = NULL)
+{
+  if (!$account) {
+    $account = \Drupal::currentUser()->getAccount();
+  }
+  return $account->hasPermission($permission_name);
+}
+
+function dge_has_role($machine_name, $roles)
+{
+  return in_array($machine_name, $roles);
+}
+
+function hide_organization_fields(&$form, $is_authenticated, $has_organization_profile)
+{
+  $has_edition_access = dge_user_has_permission(ORGANIZATION_PERMISSION);
+
+  $organization_access = $form['#form_id'] == 'user_form' ?
+    $has_edition_access
+    : (!$is_authenticated || $form['account']['roles'][ACCESS] || $has_organization_profile);
+
+  $fields_to_hide = [
+    'field_posicion',
+    'field_organizacion',
+    'field_ckan_user_id',
+    'field_ckan_user_name'
+  ];
+
+  foreach ($fields_to_hide as $field_name) {
+    if (isset($form[$field_name])) {
+      $form[$field_name][ACCESS] = $organization_access;
+    }
+  }
+}
+
+function setAccountNameDescription(&$form)
+{
+  $form['account']['name']['#description'] =
+    t("Alphanumeric characters, spaces, and the special characters (.), (_), ('), (-), and (@) are allowed.");
+}
+
+
+function setConditionsToOrganizationFields(&$form)
+{
+  $is_authenticated = \Drupal::currentUser()->isAuthenticated();
+
+  if (!$is_authenticated) {
+    $form['account']['roles']['#default_value'][0] = ROL_PUBLICADOR;
+  }
+
+  $has_organization_profile = dge_has_role(ROL_PUBLICADOR, $form['account']['roles']['#default_value'])
+    || dge_has_role(ROL_REUTILIZADOR, $form['account']['roles']['#default_value']);
+
+  hide_organization_fields($form, $is_authenticated, $has_organization_profile);
+
+  if (!$is_authenticated) {
+    $form['field_posicion']['widget'][0]['value']['#required'] = true;
+    $form['field_organizacion']['widget']['#required'] = true;
+    $form['field_dir3'] = [
+      '#type' => 'textfield',
+      '#title' => t('DIR3'),
+      '#required' => TRUE,
+    ];
+
+  } elseif ($has_organization_profile){
+    $form['field_posicion']['widget'][0]['value']['#required'] = true;
+    $form['field_organizacion']['widget']['#required'] = true;
+
+  } else {
+    $form['field_posicion']['widget'][0]['value']['#required'] = TRUE;
+    $form['field_organizacion']['widget']['#required'] = TRUE;
+  }
+
+  if (isset($form['field_terminos_de_servicio'])) {
+    $form['field_terminos_de_servicio']['widget']['value']['#required'] = !$is_authenticated;
+  }
+
+  $form['#validate'][] = 'dge_user_user_form_validate';
+}
+
+
+function setPhonePattern(&$form)
+{
+  $form['field_telefono']['widget'][0]['value']['#attributes']['pattern'] = '^(\+\d{1,3}\s?)?(\d{9})$';
+  $form['field_telefono']['widget'][0]['value']['#description'] = 'Ej: +34666666666 o 666666666';
+}
+
+
+function dge_user_user_form_validate(array &$form, FormStateInterface $form_state)
+{
+
+  $is_authenticated = \Drupal::currentUser()->isAuthenticated();
+
+  $roles = $form_state->getValue('roles');
+
+  if (!$is_authenticated) {
+    $field_value_organizacion = $form_state->getValue('field_organizacion');
+    $field_value_dir3 = $form_state->getValue('field_dir3');
+
+    if (!empty($field_value_organizacion) && !empty($field_value_dir3)) {
+      $taxonomy_term = \Drupal\taxonomy\Entity\Term::load($field_value_organizacion[0]['target_id'])->getFields()['field_c_id_ud_organica']->getValue()[0]['value'];
+      if ($taxonomy_term != $field_value_dir3) {
+        $form_state->setValue('field_dir3', []);
+        $form_state->setErrorByName('field_dir3', t('El DIR3 introducido no coincide con el DIR3 de la organización seleccionada.'));
+      }
+    } elseif(empty($field_value_organizacion)) {
+      $form_state->setValue('field_dir3', []);
+      $form_state->setErrorByName('field_dir3', t('El DIR3 introducido no coincide con el DIR3 de la organización seleccionada.'));
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * @param array $form
+ *  The form array to be altered.
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ *   The current form state.
+ * @param string $form_id
+ *   The ID of the form being altered.
+ */
+function dge_user_form_user_form_alter(&$form, &$form_state, $form_id)
+{
+  setAccountNameDescription($form);
+  setConditionsToOrganizationFields($form);
+  setPhonePattern($form);
+}
+
+function dge_user_preprocess_menu__account(array &$variables) {
+  $current_user = \Drupal::currentUser();
+  $menu_cuadro_mando_publicador_id = 'menu_link_content';
+
+  $organization_term = getOrganizationTerm($current_user);
+  
+  if ($current_user->hasRole('administrator')) {
+    unsetMenuItem($variables, $menu_cuadro_mando_publicador_id);
+  }
+
+  if ($current_user->hasRole('publicador') && ($current_user->hasRole('aporta') ||$current_user->hasRole('administrator'))) {
+    foreach ($variables['items'] as $key => $item) {
+      if ( $item['url']->toString() == '/catalogo') {
+        $item['url']->setOption('query', ['publisher_display_name' => $organization_term->getName()]);
+      }
+     
+    }
+  }
+  if ($current_user->hasRole('publicador') && (!$current_user->hasRole('aporta') && !$current_user->hasRole('administrator'))) {
+    foreach ($variables['items'] as $key => $item) {
+      if ( $item['url']->toString() == '/catalogo') {
+        $item['url']->setOption('query', ['publisher_display_name' => $organization_term->getName()]);
+      }
+      if ( $item['url']->toString() == '/report/broken-links') {
+        $item['url']->setOption('query', ['organization' => $organization_term->get('field_ckan_organization_name')->value]);
+      }
+    }
+  }
+}
+
+
+function getOrganizationTerm($current_user) {
+
+  $user = User::load($current_user->id());
+
+  if ($user && $user->hasField('field_organizacion') && !$user->get('field_organizacion')->isEmpty()) {
+    $term_id = $user->get('field_organizacion')->getValue()[0]['target_id'];
+    if ($term_id) {
+      return \Drupal\taxonomy\Entity\Term::load($term_id);
+    }
+  }
+  return null;
+}
+
+function unsetMenuItem(array &$variables, $menu_item_id) {
+  foreach ($variables['items'] as $key => $item) {
+    if ($key === $menu_item_id) {
+      unset($variables['items'][$key]);
+    }
+  }
+}

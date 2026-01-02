@@ -1,0 +1,52 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_last_login (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/**
+ * @file
+ * Module to display the last login time of current user.
+ */
+
+
+/**
+ * Implements hook_user_login().
+ */
+function dge_last_login_user_login($account)
+{
+  $user = \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
+  $last_login = date('Y-m-d H:i', $user->getLastLoginTime());
+
+  if ($last_login) {
+    $_SESSION['user_last_login'] = $last_login;
+  } else {
+    $_SESSION['user_last_login'] = date('Y-m-d H:i', time());
+  }
+}
+
+function dge_last_login_theme()
+{
+  return [
+    'block__last_login' => [
+      'variables' => [
+        'data' => [],
+        'loggin'=> [],
+      ]
+    ]
+  ];
+}

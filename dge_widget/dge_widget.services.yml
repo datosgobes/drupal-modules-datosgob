@@ -1,0 +1,10 @@
+services:
+  dge_widget.cors_subscriber:
+    class: Drupal\dge_widget\EventSubscriber\CorsSubscriber
+    tags:
+      - {name: event_subscriber}
+
+  dge_widget.twig_extension:
+    class: Drupal\dge_widget\Twig\DgeWidgetExtension
+    tags:
+      - {name: twig.extension}

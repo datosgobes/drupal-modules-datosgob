@@ -1,0 +1,23 @@
+dge_data_request.config_form:
+  path: "/admin/config/dge/data_request"
+  defaults:
+    _title: "DGE Data Request Config"
+    _form: '\Drupal\dge_data_request\Form\DgeDataRequestConfigForm'
+  requirements:
+    _permission: "administer data request config"
+
+dge_data_request.subscription_form:
+  path: "/request/assign/{nid}"
+  defaults:
+    _title_callback: '\Drupal\dge_data_request\Form\DgeDataRequestSubscriptionForm:getTitle'
+    _form: '\Drupal\dge_data_request\Form\DgeDataRequestSubscriptionForm'
+  requirements:
+    _permission: "access content"
+
+dge_data_request.unsubscription_form:
+  path: "/request/unsubscription/{nid}"
+  defaults:
+    _title_callback: '\Drupal\dge_data_request\Form\DgeDataRequestUnsubscriptionForm:getTitle'
+    _form: '\Drupal\dge_data_request\Form\DgeDataRequestUnsubscriptionForm'
+  requirements:
+    _permission: "access content"

@@ -1,0 +1,6 @@
+dge_basic_settings.admin:
+  title: 'DGE'
+  description: 'Manage DGE modules'
+  parent: system.admin_config
+  route_name: system.dge_basic_settings
+  weight: 100

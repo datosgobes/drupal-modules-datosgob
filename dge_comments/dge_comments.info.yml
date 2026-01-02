@@ -1,0 +1,9 @@
+name: DGE Comments
+description: "Customized comments form and display"
+type: module
+core_version_requirement: ^10
+package: "DGE"
+configure: dge_comments.config_form
+dependencies:
+  - dge_user:dge_user
+  - dge_ckan:dge_ckan

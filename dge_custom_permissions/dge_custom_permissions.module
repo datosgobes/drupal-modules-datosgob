@@ -1,0 +1,58 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_custom_permissions (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use Drupal\Core\Session\AccountInterface;
+
+/**
+ * Implements hook_form_alter().
+ */
+function dge_custom_permissions_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id)
+{
+  if (preg_match('/^node_.+_form$/', $form_id)) {
+    if (!\Drupal::currentUser()->hasPermission('show revisions information') && isset($form['revision_information'])) {
+      $form['revision_information']['#access'] = FALSE;
+    }
+    if (!\Drupal::currentUser()->hasPermission('show moderation state field') && isset($form['moderation_state'])) {
+      $form['moderation_state']['#access'] = FALSE;
+    }
+    if (!\Drupal::currentUser()->hasPermission('show tags field') && isset($form['field_etiquetas'])) {
+      $form['field_etiquetas']['#access'] = FALSE;
+    }
+    if (!\Drupal::currentUser()->hasPermission('show data request admin fields')
+      && isset($form['field_respuesta'])
+      && isset($form['field_publicador'])
+      && isset($form['field_url_del_conjunto_de_datos'])
+      && isset($form['field_request_subscriptor'])
+      && isset($form['field_organismo_responsable'])
+      && isset($form['field_number_subscriptors'])
+    ) {
+      $form['field_respuesta']['#access'] = FALSE;
+      $form['field_publicador']['#access'] = FALSE;
+      $form['field_url_del_conjunto_de_datos']['#access'] = FALSE;
+      $form['field_request_subscriptor']['#access'] = FALSE;
+      $form['field_organismo_responsable']['#access'] = FALSE;
+      $form['field_number_subscriptors']['#access'] = FALSE;
+    }
+    if (!\Drupal::currentUser()->hasPermission('show initiative field') && isset($form['field_geoposition'])) {
+      $form['field_geoposition']['#access'] = FALSE;
+    }
+
+  }
+}

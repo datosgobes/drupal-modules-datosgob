@@ -1,0 +1,6 @@
+dge_widget:
+  version: 1.0
+  js:
+    js/dge_widget.js: {}
+  dependencies:
+    - core/drupal

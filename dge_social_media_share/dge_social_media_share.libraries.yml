@@ -1,0 +1,6 @@
+dge_social_media_share:
+  version: 1.0
+  js:
+    js/dge_social_media_share.js: {}
+  dependencies:
+    - core/drupal

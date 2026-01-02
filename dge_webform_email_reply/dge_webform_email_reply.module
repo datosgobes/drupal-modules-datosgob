@@ -1,0 +1,157 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_webform_email_reply (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+
+use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
+use Drupal\webform\Entity\WebformSubmissionInterface;
+use Drupal\webform\WebformInterface;
+
+/**
+ * @file
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+define("ROUTE_NAME_PREFIX", "entity.webform_submission.");
+
+/**
+ * Implements hook_help().
+ */
+function dge_webform_email_reply_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.dge_webform_email_reply':
+      $return_value = "<p>" . t("This module provides a way for users to reply to webform submissions within the CMS.") . '<br />';
+      $return_value .= t("Permission can be set to allow users to reply to Contact webform submissions") . '<p>';
+      $return_value .= "<p>" . t("All emails sent are stored in the database and can be viewed from the submission page through replies tab.") . '</p>';
+      return $return_value;
+  }
+}
+
+
+function dge_webform_email_reply_insert(array $data) {
+  $user = \Drupal::currentUser();
+
+  \Drupal::database()->insert('dge_webform_email_reply')
+    ->fields([
+      'eid' => NULL,
+      'sid' => $data['sid'],
+      'webform_id' => $data['webform_id'],
+      'uid' => $user->id(),
+      'from_address' => $data['from_address'],
+      'replied' => time(),
+      'message' => $data['message'],
+    ])
+    ->execute();
+}
+
+
+function dge_webform_email_reply_get_replies($webform_id, $sid) {
+  
+  $previous_replies = \Drupal::database()->select('dge_webform_email_reply', 'r')
+    ->fields('r')
+    ->condition('r.webform_id', $webform_id)
+    ->condition('r.sid', $sid)
+    ->execute()
+    ->fetchAll();
+  return $previous_replies;
+}
+
+/**
+ * Implements hook_mail().
+ *
+ */
+function dge_webform_email_reply_mail($key, &$message, $params) {
+  if (($key == 'dge_webform_email_reply') || ($key == 'email')) {
+
+    if (isset($params['subject'])) {
+      $message['subject'] = $params['subject'];
+    }
+
+    if (isset($params['body'])) {
+      $message['body'][] = $params['body'];
+    }
+
+    if (isset($params['headers']) && is_array($params['headers'])) {
+      $message['headers'] += $params['headers'];
+    }
+
+    if (isset($params['from'])) {
+      $message['from'] = $params['from'];
+    }
+
+    $reply_to = array_key_exists('reply_to', $params) ? $params['reply_to'] : '';
+    if (empty($reply_to) && !empty($params['from'])) {
+      $reply_to = $message['from'];
+    }
+
+    if ($reply_to) {
+      $message['reply-to'] = $message['headers']['Reply-to'] = $reply_to;
+    }
+
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view()
+ *
+ * @param array $build
+ * @param \Drupal\Core\Entity\EntityInterface $entity
+ * @param \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display
+ * @param [type] $view_mode
+ * @return void
+ */
+function dge_webform_email_reply_webform_submission_view(array &$build, \Drupal\Core\Entity\EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display, $view_mode) {
+
+  if ($entity->getWebform()->id() == 'contact' && $view_mode != 'yaml') {
+
+    $form = \Drupal::formBuilder()->getForm('Drupal\dge_webform_email_reply\Form\DgeWebformEmailReplyForm', $entity);
+    $build['dge_webform_email_reply_form'] = [
+      '#markup' => \Drupal::service('renderer')->render($form),
+    ];
+  }
+
+}
+
+/**
+ * Implements hook_menu_local_tasks_alter().
+ *
+ * @param [type] $data
+ * @param [type] $route_name
+ * @param RefinableCacheableDependencyInterface $cacheability
+ * @return void
+ */
+function dge_webform_email_reply_menu_local_tasks_alter(&$data, $route_name, RefinableCacheableDependencyInterface &$cacheability) {
+
+  $has_prefix = strncmp($route_name, ROUTE_NAME_PREFIX, strlen(ROUTE_NAME_PREFIX));
+
+  if ($has_prefix === 0) {
+    $webform_submission = \Drupal::routeMatch()->getParameter('webform_submission');
+    if ($webform_submission){
+      $webform = $webform_submission->getWebform();
+      if ($webform->id() == 'contact') {
+        $data['tabs'][0]['dge_webform_email_reply.previous']['#access'] = TRUE;
+      } else {
+        $data['tabs'][0]['dge_webform_email_reply.previous']['#access'] = FALSE;
+      }
+    }
+  }
+}

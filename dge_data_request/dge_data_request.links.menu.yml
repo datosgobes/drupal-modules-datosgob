@@ -1,0 +1,5 @@
+dge_data_request.config_form:
+  title: 'DGE Data Request'
+  parent: dge_basic_settings.admin
+  description: 'Configuración correo de asignación petición de datos.'
+  route_name: dge_data_request.config_form

@@ -1,0 +1,7 @@
+dge_tfa.config_form:
+  path: '/admin/config/dge/dge-tfa'
+  defaults:
+    _form: '\Drupal\dge_tfa\Form\DgeTfaSettingsForm'
+    _title: 'DGE TFA Settings'
+  requirements:
+    _permission: 'administer site configuration'

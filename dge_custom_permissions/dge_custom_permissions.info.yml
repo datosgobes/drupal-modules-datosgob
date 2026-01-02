@@ -1,0 +1,5 @@
+name: DGE Custom Permissions
+type: module
+description: "Custom module for handling permissions."
+package: "DGE"
+core_version_requirement: ^10

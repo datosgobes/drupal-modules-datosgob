@@ -1,0 +1,7 @@
+name: DGE Views Filter Dates
+description: 'Módulo que altera los filtros de fecha en Views sumando 1 día a los filtros "Es menor o igual que".'
+type: module
+core_version_requirement: ^10
+package: 'DGE'
+dependencies:
+  - views:views

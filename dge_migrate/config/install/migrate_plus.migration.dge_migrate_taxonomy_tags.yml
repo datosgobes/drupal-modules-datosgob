@@ -1,0 +1,54 @@
+id: dge_migrate_taxonomy_tags
+label: Migrate tags taxonomy from Drupal 7 to Drupal 10
+migration_group: dge_migrate
+migration_tags:
+ - Drupal 7
+ - Content
+dependencies:
+  enforced:
+    module:
+      - dge_migrate
+
+source:
+  plugin: dge_migrate_taxonomy_tags
+  tags_type:
+    - app_tags
+    - success_tags
+    - blog_tags
+    - event_tags
+    - doc_tags
+    - talk_tags
+    - blog_blog_tags
+
+destination:
+  plugin: entity:taxonomy_term
+
+process:
+  # To avoid duplicated tid
+  # tid: tid
+  vid: 
+  -
+    plugin: static_map
+    source: vid
+    map:
+      6: 'tags'
+      9: 'tags'
+      10: 'tags'
+      11: 'tags'
+      12: 'tags'
+      13: 'tags'
+      26: 'tags'
+
+  -
+    plugin: default_value
+    default_value: 'tags'
+  name:
+    plugin: skip_on_empty
+    method: row
+    source: filtered_tag
+  description__value: description
+  description__format: format
+  weight: weight
+  
+migration_dependencies:
+  optional: {  }

@@ -1,0 +1,93 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_widget (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+include_once DRUPAL_ROOT . '/modules/custom/dge_ckan/dge_ckan_json_label.inc';
+use Drupal\Core\Routing\RouteMatchInterface;
+
+
+/**
+ * Implements hook_theme().
+ */
+function dge_widget_theme($existing, $type, $theme, $path) {
+    return [
+      'widget_rss_fecha' => [
+        'variables' => [
+          'response' => NULL,
+          'title' => NULL,
+          'nti_dge_dataset_label' => NULL,
+          'frequency_label' => NULL
+        ],
+        'template' => 'dge_widget_rss',
+      ],
+      'widget_rss_alpha' => [
+        'variables' => [
+          'response' => NULL,
+          'title' => NULL,
+          'nti_dge_dataset_label' => NULL,
+          'frequency_label' => NULL
+        ],
+        'template' => 'dge_widget_rss',
+      ],
+      'widget_rss' => [
+        'variables' => [
+          'response' => NULL,
+          'title' => NULL,
+          'nti_dge_dataset_label' => NULL,
+          'frequency_label' => NULL
+        ],
+        'template' => 'dge_widget_rss_simple',
+      ],
+    ];
+  }
+  
+
+/**
+ * Implements hook_preprocess_HOOK() for page templates.
+ */
+function dge_widget_preprocess_page(array &$variables) {
+   
+  $variables['nti_dge_dataset_label'] = new dge_ckan_json_label('nti_dge_dataset.json');
+  $variables['frequency_label'] = new dge_ckan_json_label('frequency_label.json');
+  $variables['get_json_value'] = 'get_json_value';
+  $variables['get_json_key_value'] = 'get_json_key_value';
+  $variables['get_json_date_value'] = 'get_json_date_value';
+  $variables['get_json_multiple_value'] = 'get_json_multiple_value';
+  $variables['get_json_array_value'] = 'get_json_array_value';
+  $variables['get_json_array_key_value'] = 'get_json_array_key_value';
+  $variables['read_json'] = 'read_json';
+  $variables['get_json_label'] = 'get_json_label';
+  $variables['get_frequency_label'] = 'get_frequency_label';
+}
+
+  /**
+ * Implements hook_permission().
+ */
+function dge_widget_permission() {
+  return [
+    'access dge_widget' => [
+      'title' => t('Access dge_widget'),
+      'description' => t('Access dge_widget.'),
+    ],
+    'access generate dge_widget' => [
+      'title' => t('Generate Widget'),
+      'description' => t('Allow users to create a dataset widget.'),
+    ],
+  ];
+}

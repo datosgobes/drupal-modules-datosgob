@@ -1,0 +1,7 @@
+dge_custom_powerbi_report_iframe:
+  version: 1.0
+  js:
+    js/powerbi.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery

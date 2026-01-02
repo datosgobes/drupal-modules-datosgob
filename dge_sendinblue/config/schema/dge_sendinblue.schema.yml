@@ -1,0 +1,25 @@
+dge_sendinblue.config:
+  type: config_object
+  label: 'DGE Sendinblue Config'
+  mapping:
+    dge_sendinblue_api_key:
+      type: string
+      label: 'SendInBlue API Key'
+    dge_sendinblue_list_id:
+      type: string
+      label: 'SendInBlue List ID'
+    dge_sendinblue_from:
+      type: string
+      label: 'From email'
+    dge_sendinblue_test_list_id:
+      type: string
+      label: 'SendInBlue TEST List ID'
+    dge_sendinblue_unsuscribe_send_email:
+      type: string
+      label: 'Send newsletter unsuscribe email (CCO)'
+    dge_sendinblue_unsuscribe_email_subject:
+      type: text
+      label: 'Newsletter unsuscribe email subject'
+    dge_sendinblue_unsuscribe_email_content:
+      type: text
+      label: 'Newsletter unsuscribe email content'

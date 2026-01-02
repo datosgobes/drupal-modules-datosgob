@@ -1,0 +1,145 @@
+{#
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_widget (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+#}
+
+
+<!DOCTYPE html>
+<html lang="es" dir="ltr">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ title }} | datos.gob.es</title>
+  <style>
+    a {
+      font-family: Arial;
+      color: #6D1E7E;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  {% set base_url = render_var(url('<front>'))  %} 
+  {% set url_catalog = base_url ~ "/catalogo/"%}
+
+  {% if response.success %}
+    {% for result in response.result.results %}
+      {% set url = url_catalog ~ get_json_value('name', result) %}
+      <div>
+        <div>
+          <span class="datosgob_titulo">
+            <a href="{{ url }}" target="_blank"  rel="noopener">{{ get_json_value('title', result) }}</a>
+          </span>
+        </div>
+        <div class="datosgob_descripcion">
+          <p>{{ get_json_multiple_value('description', result) }}</p>
+        </div>
+        <div class="datosgob_categorias">
+          <span>Categorías: </span>
+          <div>{{ get_json_array_value('theme', 'es', result, nti_dge_dataset_label) }}</div>
+        </div>
+        <div class="datosgob_etiquetas">
+          <span>Etiquetas: </span>
+          <div>{{ get_json_array_key_value('tags', 'display_name', result) }}</div>
+        </div>
+        <div class="datosgob_publicador">
+          <span>Publicador: </span>
+          <div>{{ get_json_key_value('organization', 'title', result) }}</div>
+        </div>
+        <div class="datosgob_condreutilizacion">
+          <span>Condiciones de reutilización: </span>
+          <div>{{ get_json_value('license_url', result) }}</div>
+        </div>
+        <div class="datosgob_feccreacion">
+          <span>Fecha creación: </span>
+          <div>
+            <span class="date-display-single" property="dc:issued" 
+                  content="{{ get_json_value('metadata_created', result) }}">
+              {{ get_json_date_value('metadata_created', result, 'm/d/Y') }}
+            </span>
+          </div>
+        </div>
+        <div class="datosgob_fecactualizacion">
+          <span>Fecha actualización: </span>
+          <div>
+            <span class="date-display-single" property="dc:modified" 
+                  content="{{ get_json_value('metadata_modified', result) }}">
+              {{ get_json_date_value('metadata_modified', result, 'm/d/Y') }}
+            </span>
+          </div>
+        </div>
+        <div class="datosgob_frecactualizacion">
+          <span>Frecuencia de actualización: </span>
+          <div>{{ get_frequency_label(result, frequency_label) }}</div>
+        </div>
+        <div class="datosgob_cobgeografica">
+          <span>Cobertura Geográfica: </span>
+          <div>{{ get_json_array_value('spatial', 'es', result, nti_dge_dataset_label) }}</div>
+        </div>
+        <div class="datosgob_idiomas">
+          <span>Idiomas: </span>
+          <div>{{ get_json_array_value('language', 'es', result, nti_dge_dataset_label) }}</div>
+        </div>
+        <div class="datosgob_fordistribucion">
+          <span>Distribuciones: </span>
+          <div>
+            <ul>
+              {% set resources = get_json_value('resources', result) %}
+              {% for resource in resources %}
+                <li>
+                  <div>
+                    <div class="field">
+                      <div class="field-label">Nombre:&nbsp;</div>
+                      <div class="field-items">
+                        {% set resources_name_translated = get_json_value('name_translated', resource) %}
+                        {% if resources_name_translated %}
+                          {% for name in resources_name_translated %}
+                            <div class="field-item" property="dc:title">{{ name }}</div>
+                          {% endfor %}
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="field">
+                      <div class="field-label">URL:&nbsp;</div>
+                      <div class="field-items">
+                        <div class="field-item" property="dcat:accessURL">{{ resource.url }}</div>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <div class="field-label">Formato:&nbsp;</div>
+                      <div class="field-items">
+                        <div class="field-item" property="dcat:mediaType">{{ resource.format }}</div>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <div class="field-label">Tamaño:&nbsp;</div>
+                      <div class="field-items">
+                        <div class="field-item" property="dcat:byteSize">{{ resource.size }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
+</body>
+</html>

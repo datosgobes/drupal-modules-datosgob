@@ -1,0 +1,219 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_custom_powerbi_report_iframe (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use Drupal\Core\Form\FormStateInterface;
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\node\Entity\Node;
+use Drupal\Core\Url;
+use Drupal\paragraphs\Entity\Paragraph;
+use Symfony\Component\HttpFoundation\Response;
+use GuzzleHttp\Client;
+
+define('URL_CUADRO_DE_MANDO_PRIVADO', '/panel-de-trabajo/cuadro-de-mando-privado-publicador');
+
+
+function dge_custom_powerbi_report_iframe_page_attachments(array &$attachments) {
+  
+  if ($node = \Drupal::routeMatch()->getParameter('node')) {
+    if ($node->getType() == 'page') {
+      $current_path = \Drupal::service('path.current')->getPath();
+
+      $alias_manager = \Drupal::service('path_alias.manager');
+      $path_alias = $alias_manager->getAliasByPath($current_path);
+
+      if ($path_alias == URL_CUADRO_DE_MANDO_PRIVADO) {
+        $attachments['#attached']['library'][] = 'dge_custom_powerbi_report_iframe/dge_custom_powerbi_report_iframe';
+      }
+    }
+  }
+}
+
+/**
+ * Implementación de hook_preprocess_paragraph().
+ *
+ */
+function dge_custom_powerbi_report_iframe_preprocess_paragraph(array &$variables) {
+  $paragraph = $variables['paragraph']; 
+
+  $variables['#cache'] = [
+    'max-age' => 0, 
+  ];
+  
+  if ($paragraph->hasField('field_powerbi_report_iframe')) {
+      if (\Drupal::currentUser()->hasRole('publicador')) {
+        $url_field = $paragraph->get('field_powerbi_report_iframe')->getValue();
+        
+        if ($url_field) {
+          $user = \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
+          $ckan_user_id = $user->get('field_ckan_user_id')->value;
+          $organization_id = $user->get('field_organizacion')->target_id;
+          $organization_id_ckan = NULL;
+
+          
+          $vid = \Drupal::entityTypeManager()->getStorage('taxonomy_vocabulary')->load('organizaciones')->id();
+            $terms = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadTree($vid);
+
+      
+          foreach ($terms as $term) {
+            $term_entity = \Drupal\taxonomy\Entity\Term::load($term->tid);
+            if ($term_entity->hasField('tid') && $term_entity->hasField('field_ckan_organization_id')) {
+              $field_reference_id = $term_entity->get('tid')->value;
+              if ($field_reference_id == $organization_id) {
+                $organization_id_ckan =  $term_entity->get('field_ckan_organization_id')->value;
+              }
+            }
+          }
+
+          $access_token = getAccessToken();
+          if (!$access_token) {
+              \Drupal::logger('dge_custom_powerbi_report_iframe')->error('No se pudo obtener el access token.');
+              return;
+          }
+
+          $report_id = getReportId($url_field);
+          if ($report_id === NULL) {
+              \Drupal::logger('dge_custom_powerbi_report_iframe')->error('No se pudo obtener el reportId para la URL: ' . $url_field[0]['uri']);
+              return;
+          }
+
+          try {
+              $embed_token = getEmbedToken($access_token, $report_id);
+          } catch (\Exception $e) {
+              \Drupal::logger('dge_custom_powerbi_report_iframe')->error('No se pudo obtener el embed token para el reportId: ' . $report_id);
+              return;
+          }
+
+          if (!$embed_token) {
+              \Drupal::logger('dge_custom_powerbi_report_iframe')->error('No se pudo obtener el embed token para el reportId: ' . $report_id);
+              return;
+          }
+
+          $url_with_filter = $url_field[0]['uri'] ;
+          $url_with_token = $url_with_filter . '&access_token=' . $embed_token;
+
+          $paragraph->set('field_powerbi_report_iframe', [['uri' => $url_with_token]]);
+            $variables['embed_token'] = $embed_token;
+            $variables['report_id'] = $report_id;
+            $variables['report_url'] = $url_with_filter;
+            $variables['organization_id_ckan'] = urlencode($organization_id_ckan);
+        } else {
+            \Drupal::logger('dge_custom_powerbi_report_iframe')->error('El campo field_powerbi_report_iframe está vacío o no se encuentra en el párrafo.');
+        }
+      }
+  }
+}
+
+
+
+
+function getAccessToken() {
+
+  $config = \Drupal::config('dge_custom_powerbi_report_iframe.settings');
+  $tenant_id = $config->get('tenant_id');
+  $client_id = $config->get('client_id');
+  $client_secret = $config->get('client_secret');
+  
+
+  $url = "https://login.microsoftonline.com/{$tenant_id}/oauth2/v2.0/token";
+
+  $data = [
+    'grant_type' => 'client_credentials',
+    'client_id' => $client_id,
+    'client_secret' => $client_secret,
+    'scope' => 'https://analysis.windows.net/powerbi/api/.default',
+  ];
+
+  $client = new Client();
+  try {
+    $response = $client->post($url, [
+      'form_params' => $data,
+    ]);
+
+    $response_data = json_decode($response->getBody()->getContents(), TRUE);
+
+    return $response_data['access_token'] ?? NULL;
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dge_custom_powerbi_report_iframe')->error('Error obteniendo el token de acceso: ' . $e->getMessage());
+    return NULL;
+  }
+}
+
+
+function getEmbedToken($token,$report_id) {
+
+  $config = \Drupal::config('dge_custom_powerbi_report_iframe.settings');
+  $group_id = $config->get('group_id');
+
+  $url= "https://api.powerbi.com/v1.0/myorg/groups/{$group_id}/reports/{$report_id}/GenerateToken"; 
+ 
+  $headers = [
+    'Content-Type' => 'application/json',
+    'Authorization' => 'Bearer '.$token,
+  ];
+
+  $data = [
+    'accessLevel' => 'View',
+  ];
+
+  $client = new Client();
+
+  try {
+    $response = $client->post($url, [
+      'headers' => $headers,
+      'json' => $data,  
+    ]);
+
+    $response_data = json_decode($response->getBody()->getContents(), TRUE);
+
+    return  $response_data['token'] ?? NULL;
+
+  }
+  catch (RequestException $e) {
+    \Drupal::logger('dge_custom_powerbi_report_iframe')->error('Error obteniendo el token de Power BI: ' . $e->getMessage());
+    return NULL;
+  }
+}
+
+function getReportId($url_field) {
+  $url = $url_field[0]['uri'];
+
+  $parsed_url = parse_url($url);
+
+  if (isset($parsed_url['query'])) {
+    parse_str($parsed_url['query'], $query_params);
+    
+    if (isset($query_params['reportId'])) {
+      $report_id = $query_params['reportId'];
+      \Drupal::logger('dge_custom_powerbi_report_iframe')->notice('El reportId es: ' . $report_id);
+      return $report_id;
+    }
+    else {
+      \Drupal::logger('dge_custom_powerbi_report_iframe')->error('No se encontró el parámetro reportId.');
+      return NULL;
+    }
+  }
+  else {
+    \Drupal::logger('dge_custom_powerbi_report_iframe')->error('La URL no contiene una cadena de consulta.');
+    return NULL;
+  }
+}
+

@@ -1,0 +1,8 @@
+langcode: ''
+dge_sendinblue_api_key: ''
+dge_sendinblue_list_id: ''
+dge_sendinblue_from: ''
+dge_sendinblue_test_list_id: ''
+dge_sendinblue_unsuscribe_send_email: ''
+dge_sendinblue_unsuscribe_email_subject: ''
+dge_sendinblue_unsuscribe_email_content: ''

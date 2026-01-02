@@ -1,0 +1,80 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_user_report_inactivity (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_FORM_ID_alter()
+ */
+function dge_user_report_inactivity_form_user_admin_settings_alter(&$form, FormStateInterface $form_state) {
+
+ $mail_config = \Drupal::getContainer()->get('config.factory')->getEditable('dge_user_report_inactivity.email');
+ $email_token_help = t('The list of available tokens that can be used in e-mails is provided below.');
+
+ $form['dge_user_report_inactivity_email'] = [
+   '#type' => 'details',
+   '#title' => t('Report inactivity'),
+   '#description' => t('send an inactivity notification.') . ' ' . $email_token_help,
+   '#group' => 'email',
+ ];
+ $form['dge_user_report_inactivity_email']['dge_user_report_inactivity_email_subject'] = [
+   '#type' => 'textfield',
+   '#title' => t('Subject'),
+   '#default_value' => $mail_config->get('dge_user_report_inactivity_email.subject'),
+   '#maxlength' => 180,
+ ];
+ $form['dge_user_report_inactivity_email']['dge_user_report_inactivity_email_body'] = [
+   '#type' => 'textarea',
+   '#title' => t('Body'),
+   '#default_value' => $mail_config->get('dge_user_report_inactivity_email.body'),
+   '#rows' => 8,
+ ];
+
+ $form['#submit'][] = '_report_inactivity_email_settings_submit';
+}
+
+function _report_inactivity_email_settings_submit(array $form, FormStateInterface $form_state) {
+
+  $mail_config = \Drupal::getContainer()->get('config.factory')->getEditable('dge_user_report_inactivity.email');
+
+  $mail_config
+    ->set('dge_user_report_inactivity_email.subject', $form_state->getValue('dge_user_report_inactivity_email_subject'))
+    ->set('dge_user_report_inactivity_email.body', $form_state->getValue('dge_user_report_inactivity_email_body'))
+  ->save();
+
+  $form_state->unsetValue('dge_user_report_inactivity_email.subject');
+  $form_state->unsetValue('dge_user_report_inactivity_email.body');
+
+}
+
+
+/**
+ * Implements hook_mail().
+ */
+function dge_user_report_inactivity_mail($key, &$message, $params) {
+  switch ($key) {
+    case 'dge_user_report_inactivity_email':
+      $message['from'] = \Drupal::config('system.site')->get('mail');
+      $message['subject'] = $params['subject'];
+      $message['body'][] = $params['message'];
+      break;
+  }
+}

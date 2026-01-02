@@ -1,0 +1,6 @@
+system.dge_basic_settings:
+  path: '/admin/config/dge'
+  defaults:
+    _title: 'DGE'
+  requirements:
+    _permission: 'administer site configuration'

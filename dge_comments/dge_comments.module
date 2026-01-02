@@ -1,0 +1,188 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_comments (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use Drupal\Core\Form\FormStateInterface;
+
+
+function dge_comments_form_comment_form_alter(&$form, &$form_state, $form_id) {
+    $userCurrent = \Drupal::currentUser();
+    if(!$userCurrent->isAnonymous()
+        && (dge_user_is_administrator_user($userCurrent)
+        || dge_user_is_organization_user($userCurrent))) {
+        $name = $userCurrent->getAccountName();
+        $form['user'] = [
+          '#type' => 'item',
+          '#title' => t('Name'),
+          '#markup' => '<p class="comment__author"><span>'.$name.'</span></p>',
+        ];
+        $form["field_consentimiento_de_datos"]['#access'] = false;
+    }
+
+    if(isset($form['author']['name'])){
+      $form['author']['name']['#description'] = t("The content of this field will be shown publicly");
+    }
+    if (isset($form['author']['mail'])){
+      $form['author']['mail']['#required'] = true;
+      $form['author']['mail']['#description'] = t("Insert a valid email. Example: example@test.com") . "<br/>" . t("The content of this field is kept private and will not be shown publicly.");
+
+    }
+    if (isset($form['author']['homepage'])){
+      $form['author']['homepage']['#access'] = false;
+    }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function dge_comments_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+  if (in_array($form_id, ['node_entrevista_form', 'node_entrevista_edit_form', 'node_peticion_de_datos_form', 'node_peticion_de_datos_edit_form'])) {
+    if (isset($form['comment'])) {
+      unset($form['comment']);
+    }
+  }
+}
+
+function dge_comments_preprocess_comment(&$variables) {
+  $variables['title']='';
+  $userCurrent = \Drupal\user\Entity\User::load($variables['comment']->uid->target_id);
+  $variables['uid'] = 0;
+  if(dge_user_is_administrator_user($userCurrent) || dge_user_is_content_editor($userCurrent)){
+    $user_admin = \Drupal\user\Entity\User::load(1);
+    $variables['author'] = "datos.gob.es";
+  } else if (dge_user_is_organization_user($userCurrent)) {
+    $org_id = $userCurrent->get('field_organizacion')->getValue();
+    $org_id = $org_id[0]['target_id'];
+    if ($org_id) {
+      $term = \Drupal\taxonomy\Entity\Term::load($org_id);
+      if ($term && $term->hasField('field_reference_id')) {
+          $variables['author'] =  $term->get('name')->value;
+      }
+    }
+  }
+  else {
+    $variables['author'] = [
+      '#markup' => str_replace(' (' . t('not verified') . ')','',$variables['author'])
+    ];
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function dge_comments_form_comment_comment_delete_form_alter(&$form, &$form_state, $form_id)
+{
+  if ($form_id == 'comment_comment_delete_form') {
+
+    $comment = $form_state->getFormObject()->getEntity();
+
+    $author_roles = $comment->getOwner()->getRoles();
+
+    if (in_array('anonymous', $author_roles)) {
+
+      $form['send_email_notification'] = [
+        '#type' => 'checkbox',
+        '#title' => t('Notificación por email'),
+      ];
+
+      $form['email_subject'] = [
+        '#type' => 'textfield',
+        '#title' => t('Email title'),
+        '#states' => [
+          'visible' => [
+            ':input[name="send_email_notification"]' => ['checked' => TRUE],
+          ],
+          'required' => [
+            ':input[name="send_email_notification"]' => ['checked' => true]
+          ]
+        ],
+      ];
+
+      $form['email_body'] = [
+        '#type' => 'textarea',
+        '#title' => t('Email body'),
+        '#states' => [
+          'visible' => [
+            ':input[name="send_email_notification"]' => ['checked' => TRUE],
+          ],
+          'required' => [
+            ':input[name="send_email_notification"]' => ['checked' => true]
+          ]
+        ],
+      ];
+
+      $form['actions']['submit']['#submit'][] = '_comment_delete_form_submit';
+
+    }
+
+  }
+}
+
+/**
+ * Implements hook_form_submit().
+ */
+function _comment_delete_form_submit(array $form, FormStateInterface $form_state)
+{
+  
+  if ($form_state->getFormObject()->getFormId() == 'comment_comment_delete_form') {
+    if ($form_state->getValue('send_email_notification')) {
+
+      $mailManager = \Drupal::service('plugin.manager.mail');
+      $module = 'dge_comments';
+      $key = 'dge_comments_comment_delete';
+
+      $comment = $form_state->getFormObject()->getEntity();
+      $to = $comment->getAuthorEmail();
+
+      $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
+      $params['subject'] = $form_state->getValue('email_subject');
+      $params['message'] = $form_state->getValue('email_body');
+      $send = TRUE;
+
+      $mailManager->mail($module, $key, $to, $langcode, $params, NULL, $send);
+    }
+  }
+}
+
+/**
+ * Implements hook_mail().
+ */
+function dge_comments_mail($key, &$message, $params) {
+  switch ($key) {
+    case 'dge_comments_comment_delete':
+      $message['subject'] = $params['subject'];
+      $message['body'][] = $params['message'];
+      break;
+  }
+}
+
+/**
+ * Implements hook_views_data_alter() for comments.
+ */
+function dge_comments_views_data_alter(array &$data) {
+
+  $data['comment']['dge_access_comment_access'] = [
+    'title' => t('DGE Access Comment'),
+    'help' => t('Filter comments based on user organization access.'),
+    'filter' => [
+      'id' => 'dge_access_comment_access',
+    ],
+  ];
+}
+

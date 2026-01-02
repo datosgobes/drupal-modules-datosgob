@@ -1,0 +1,437 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_data_request (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\Entity\Node;
+use Drupal\user\Entity\User;
+use Drupal\Core\Url;
+use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\query\QueryPluginBase;
+use Drupal\Core\Access\AccessResult;
+
+
+define('ASIGNADO', 'asignado');
+define('PUBLICADO', 'published');
+define('MAIL_ASIGNACION', 'mail_asignacion');
+define('MAIL_PUBLICADO_ORG', 'mail_publicado_org');
+define('MAIL_PUBLICADO_USER', 'mail_publicado_user');
+define('MAIL_UNSUBSCRIBED_REQUEST_DATA', 'unsubscribed_request_data');
+define('ROLE_PUBLISHER', 'publicador');
+define('VISTA_PUBLICADOR_DISPONIBILIDAD_DE_DATOS', 'views-exposed-form-disponibilidad-de-datos-publicadores-page-1');
+define('VISTA_PUBLICADOR_APLICACIONES', 'views-exposed-form-aplicaciones-publicador-page-1');
+define('VISTA_PUBLICADOR_EMPRESAS', 'views-exposed-form-empresas-publicador-page-1');
+define('FILTER_ALL', 'All');
+
+
+define('ESTADO_DISPONIBILIDAD_DE_DATOS', [
+  'estados_de_disponibilidad_de_datos-draft',
+  'estados_de_disponibilidad_de_datos-recibido',
+  'estados_de_disponibilidad_de_datos-asignado',
+  'estados_de_disponibilidad_de_datos-en_estudio',
+  'estados_de_disponibilidad_de_datos-no_viable',
+  'estados_de_disponibilidad_de_datos-validado',
+  'estados_de_disponibilidad_de_datos-published',
+  'estados_de_disponibilidad_de_datos-descartado',
+  'estados_de_disponibilidad_de_datos-despublicado'
+]);
+
+define('ESTADO_DE_CONTENIDO', [
+  'estados_de_contenido-draft',
+  'estados_de_contenido-published',
+  'estados_de_contenido-en_estudio',
+  'estados_de_contenido-programado',
+  'estados_de_contenido-descartado',
+  'estados_de_contenido-despublicado',
+]);
+
+/**
+ * implements hook_form_alter
+ *
+ * @param array $form
+ * @param FormStateInterface $form_state
+ * @param string $form_id
+ * @return void
+ */
+function dge_data_request_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+
+  $formIds = [
+    'node_peticion_de_datos_form',
+    'node_peticion_de_datos_edit_form'
+  ];
+
+  if ($form_id === 'views_exposed_form' && isset($form['moderation_state']['#options'])) {
+    switch ($form['#id']) {
+      case VISTA_PUBLICADOR_DISPONIBILIDAD_DE_DATOS:
+        filter_moderation_state($form['moderation_state']['#options'], ESTADO_DISPONIBILIDAD_DE_DATOS);
+        break;
+
+      case VISTA_PUBLICADOR_APLICACIONES:
+      case VISTA_PUBLICADOR_EMPRESAS:
+        filter_moderation_state($form['moderation_state']['#options'], ESTADO_DE_CONTENIDO);
+        break;
+    }
+  }
+  
+
+  $current_user = \Drupal::currentUser();
+
+  if(in_array($form_id, $formIds) && !$current_user->isAnonymous())
+  {
+    $form['#validate'][] = 'dge_data_request_form_validate';
+    $form['actions']['submit']['#submit'][] = 'dge_data_request_form_submit';
+  }
+
+}
+
+function filter_moderation_state(array &$options, array $allowed_keys) {
+  foreach ($options as $group_label => &$group_options) {
+    if (is_array($group_options)) {
+      foreach ($group_options as $key => $label) {
+        if (!in_array($key, $allowed_keys)) {
+          unset($group_options[$key]);
+        }
+      }
+      if (empty($group_options)) {
+        unset($options[$group_label]);
+      }
+    }
+  }
+}
+
+function dge_data_request_form_validate(array &$form, FormStateInterface $form_state) {
+
+  $nid = $form_state->getFormObject()->getEntity()->id();
+  if($nid != null){
+    $original_node = Node::load($nid);
+    if($original_node){
+      $field_body_organism = $original_node->get('field_organismo_responsable')->getValue();
+      if($field_body_organism){
+        $old_body_organism = $field_body_organism[0]['target_id'];
+        $form_state->set('old_body_organism', $old_body_organism);
+      }else {
+        $body_organism = $form_state->getValue('field_organismo_responsable');
+        $moderation_state = $form_state->getValue('moderation_state');
+
+        if(isset($body_organism) && $moderation_state[0]['value'] === ASIGNADO && $body_organism[0]['target_id'] === null){
+          $form_state->setErrorByName('field_organismo_responsable', t('To change to the <strong>Assigned</strong> status, the <strong>Responsible Organization</strong> field must be filled.'));
+        }
+      }
+    }
+  }
+}
+
+
+function dge_data_request_form_submit(array &$form, FormStateInterface $form_state) {
+
+  $field_body_organism = $form_state->getValue('field_organismo_responsable');
+  $new_body_organism = '';
+
+  if($field_body_organism){
+
+    $new_body_organism = $field_body_organism[0]['target_id'];
+    $old_body_organism = '';
+    if($form_state->get('old_body_organism') !== null){
+      $old_body_organism = $form_state->get('old_body_organism');
+    }
+
+    if($new_body_organism != $old_body_organism){
+      $nid = $form_state->getFormObject()->getEntity()->id();
+      $node = Node::load($nid);
+
+      $mail_type = MAIL_ASIGNACION;
+      _assigned_organizations_send_mail($new_body_organism, $node, $mail_type);
+    }
+
+  }
+
+  $moderation_state = $form_state->getValue('moderation_state');
+  if($field_body_organism && $moderation_state[0]['value'] === PUBLICADO){
+
+    $body_organism = $field_body_organism[0]['target_id'];
+
+    if($body_organism){
+      $nid = $form_state->getFormObject()->getEntity()->id();
+      $node = Node::load($nid);
+      $mail_type = MAIL_PUBLICADO_ORG;
+      _assigned_organizations_send_mail($body_organism, $node, $mail_type);
+      $mail_type = MAIL_PUBLICADO_USER;
+      _send_mail_to_user(null, $node, $mail_type);
+    }
+
+  }
+
+}
+
+function _assigned_organizations_send_mail($body_organism, $node, $mail_type) {
+  if($body_organism){
+    $uids = \Drupal::entityQuery('user')
+      ->accessCheck(FALSE)
+      ->condition('status', 1, '=')
+      ->condition('field_organizacion', $body_organism, '=')
+      ->execute();
+
+    $users = User::loadMultiple($uids);
+
+    if($users){
+      foreach($users as $user){
+        _send_mail_to_user($user, $node, $mail_type);
+      }
+    }
+  }
+
+}
+
+function dge_data_request_entity_presave(\Drupal\Core\Entity\EntityInterface $entity) {
+
+  if ($entity->getEntityTypeId() == 'node' && $entity->bundle() == 'peticion_de_datos') {
+    if($entity->isNew()){
+      $names = trim($entity->get('field_nombre_y_apellidos')->value);
+      $email = trim($entity->get('field_correo_electronico')->value);
+      $company = trim($entity->get('field_organizacion')->value);
+
+      $subcriptor = \Drupal\paragraphs\Entity\Paragraph::create([
+        'type' => 'request_subscriptor',
+        'field_nombre_y_apellidos' => $names,
+        'field_correo_electronico' => $email,
+        'field_organizacion' => $company,
+      ]);
+
+      $subcriptor->save();
+
+      $entity->get('field_request_subscriptor')->appendItem($subcriptor);
+
+      $entity->set('field_number_subscriptors', count($entity->get('field_request_subscriptor')));
+
+    }
+
+      $field_respuesta = $entity->get('field_respuesta')->value;
+      if (isset($entity->original) && ($entity->original->get('field_respuesta')->value  !=  $field_respuesta)) {
+        $field_subscriptor = $entity->get('field_request_subscriptor')->getValue();
+
+        foreach($field_subscriptor as $subscriptor){
+
+          if(isset( $subscriptor['target_id'])) {
+            $paragraph_subscriptor = \Drupal\paragraphs\Entity\Paragraph::load($subscriptor['target_id']);
+            if(isset($paragraph_subscriptor) && $paragraph_subscriptor->hasField('field_correo_electronico')){
+              $email = \Drupal\paragraphs\Entity\Paragraph::load($subscriptor['target_id'])->get('field_correo_electronico')->value;
+              if(!empty($email) ){
+                _send_mail_to_user(NULL, $entity, MAIL_PUBLICADO_USER, $email);
+              }
+            }
+          }
+        }
+    }
+  }
+}
+
+function _send_mail_to_user($user, $node, $mail_type, $email_paragraph= NULL) {
+
+  $config = \Drupal::config('dge_data_request.config');
+
+  switch ($mail_type) {
+    case MAIL_ASIGNACION:
+      if (!$config->get('dge_data_request_enabled')) {
+        return;
+      }
+      break;
+
+    case MAIL_PUBLICADO_ORG:
+      if (!$config->get('dge_data_request_published_org_enabled')) {
+        return;
+      }
+      break;
+
+    case MAIL_PUBLICADO_USER:
+      if (!$config->get('dge_data_request_published_user_enabled')) {
+        return;
+      }
+      break;
+
+    default:
+      break;
+  }
+
+
+  $mailManager = \Drupal::service('plugin.manager.mail');
+  $module = 'dge_data_request';
+  if ( $email_paragraph == NULL) {
+    if (isset($user) && $user !== null){
+      $to = $user->get('mail')->value;
+    } else{
+      $to = $node->get('field_correo_electronico')->value;
+    }
+  } else {
+    $to = $email_paragraph;
+  }
+
+  $langcode = \Drupal::languageManager()->getCurrentLanguage();
+  $variable_data = set_subject_content_mail_from_mail_type($mail_type);
+  $key = $variable_data['key'];
+
+  $token_service = \Drupal::token();
+  $token_options = ['callback' => 'user_mail_tokens', 'clear' => TRUE];
+  $data_request_title = $node->getTitle();
+  $url = Url::fromRoute('entity.node.canonical', ['node' => $node->id()]);
+  $url->setAbsolute();
+  $data_request_url = $url->toString();
+  $textBody = $variable_data['textBody'];
+  $textBodyTokens = $token_service->replace($textBody, ['peticion_datos_title' => $data_request_title, 'peticion_datos_url' => $data_request_url], $token_options);
+
+  $params['subject'] = $variable_data['textSubject'];
+  $params['body'] = $textBodyTokens;
+
+  $send = TRUE;
+  $mailManager->mail($module, $key, $to, $langcode, $params, NULL, $send);
+}
+
+function set_subject_content_mail_from_mail_type($mail_type){
+  $variable_data = [];
+  switch ($mail_type) {
+    case MAIL_ASIGNACION:
+      $variable_data['key'] = $mail_type;
+      $variable_data['textSubject'] = \Drupal::config('dge_data_request.config')->get('dge_data_request_email_subject');
+      $variable_data['textBody'] = \Drupal::config('dge_data_request.config')->get('dge_data_request_email_content');
+    break;
+    case MAIL_PUBLICADO_ORG:
+      $variable_data['key'] = $mail_type;
+      $variable_data['textSubject'] = \Drupal::config('dge_data_request.config')->get('dge_data_request_published_org_email_subject');
+      $variable_data['textBody'] = \Drupal::config('dge_data_request.config')->get('dge_data_request_published_org_email_content');
+    break;
+    case MAIL_PUBLICADO_USER:
+      $variable_data['key'] = $mail_type;
+      $variable_data['textSubject'] = \Drupal::config('dge_data_request.config')->get('dge_data_request_published_user_email_subject');
+      $variable_data['textBody'] = \Drupal::config('dge_data_request.config')->get('dge_data_request_published_user_email_content');
+    break;
+    }
+
+    return $variable_data;
+}
+
+/**
+ * Implements hook_mail()
+ * @param String $key
+ * @param Array &$message
+ * @param Array $params
+ * @return void
+ */
+function dge_data_request_mail($key, &$message, $params) {
+    switch ($key) {
+      case MAIL_ASIGNACION:
+      case MAIL_PUBLICADO_ORG:
+      case MAIL_PUBLICADO_USER:
+      case MAIL_UNSUBSCRIBED_REQUEST_DATA:
+      case
+        $message['from'] = \Drupal::config('system.site')->get('mail');
+        $message['subject'] = $params['subject'];
+        $message['body'][] = $params['body'];
+      break;
+    }
+}
+
+/**
+ * Implementa hook_node_access()
+ * @param Drupal\node\Entity\Node $node
+ * @param string $op
+ * @param Drupal\Core\Session\AccountProxy $account
+ * @return \Drupal\Core\Access\AccessResult
+ */
+function dge_data_request_node_access($node, $op, $account) {
+
+  if (is_object($node) && $node->getType() == 'peticion_de_datos') {
+    $current_user = User::load($account->id());
+    if ($account->hasRole('aporta') || $account->hasRole('administrator')) {
+      return AccessResult::allowed();
+    }
+    
+    if ($account->hasRole('publicador') && $current_user->hasField('field_organizacion')){
+      $org_id = $current_user->get('field_organizacion')->getValue()[0]['target_id'];
+      $node_assigned_organization_tid = $node->get('field_organismo_responsable')->getValue()[0]['target_id'];
+        if($org_id !== $node_assigned_organization_tid && $op !== 'view') {
+        return AccessResult::forbidden();
+      }
+    } else {
+      return AccessResult::neutral();
+    }
+  }
+}
+
+/**
+ * Implementa hook_views_query_alter()
+ * @param ViewExecutable $view
+ * @param QueryPluginBase $query
+ * @return void
+ */
+function dge_data_request_views_query_alter(ViewExecutable $view, QueryPluginBase $query) {
+
+  if ($view->id() == 'disponibilidad_de_datos_publicadores') {
+    $is_authenticated = \Drupal::currentUser()->isAuthenticated();
+    if($is_authenticated) {
+      $account = \Drupal::currentUser();
+      $current_user = User::load($account->id());
+      if (!array_intersect(['aporta', 'administrator'], $current_user->getRoles())) {
+        $is_publisher = dge_user_has_role_name(ROLE_PUBLISHER, $current_user);
+        if($is_publisher) {
+          $org_id = $current_user->get('field_organizacion')->getValue();
+          $org_id = $org_id[0]['target_id'];
+
+          foreach ($query->where as &$condition_group) {
+            foreach ($condition_group['conditions'] as &$condition) {
+
+              if ($condition['field'] == 'node__field_organismo_responsable.field_organismo_responsable_target_id') {
+                $condition = [
+                  'field' => 'node__field_organismo_responsable.field_organismo_responsable_target_id',
+                  'value' => $org_id,
+                  'operator' => '=',
+                ];
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update() for nodes.
+ */
+function dge_basic_settings_node_update(Drupal\Core\Entity\EntityInterface $entity) {
+  static $processed_nodes = [];
+  
+  if ($entity->getEntityTypeId() == 'node' && $entity->bundle() == 'peticion_de_datos') {
+    if (in_array($entity->id(), $processed_nodes)) {
+      return;
+    }
+    
+    $processed_nodes[] = $entity->id();
+    $workflow_state = $entity->get('moderation_state')->value;
+    $term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties([
+      'vid' => 'estados_disponibilidad_de_datos',
+      'field_estado_id' => $workflow_state,
+    ]);
+
+    if (!empty($term)) {
+      $term = reset($term);
+      $entity->set('field_estado', $term->id());
+      $entity->setNewRevision(FALSE);
+      $entity->save();
+    }
+  }
+}

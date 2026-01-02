@@ -1,0 +1,13 @@
+dge_user_report_inactivity.email:
+  type: config_object
+  label: "Password to expire"
+  mapping:
+    dge_user_report_inactivity_email:
+      type: config_object
+      mapping:
+        subject:
+          type: string
+          label: "Subject"
+        body:
+          type: text
+          label: "Body"

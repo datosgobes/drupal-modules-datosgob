@@ -1,0 +1,40 @@
+id: dge_migrate_field_collection_request
+label: Migrate Field Collection to Paragraphs
+migration_group: dge_migrate
+source:
+  plugin: d7_field_collection_item
+  field_name: field_request_subscriptor
+
+destination:
+  plugin: entity_reference_revisions:paragraph
+  default_bundle: request_subscriptor
+  update_existing: true
+
+process:
+    field_correo_electronico:
+      plugin: sub_process
+      source: field_email
+      process:
+        value: value
+    field_nombre_y_apellidos:
+      plugin: sub_process
+      source: field_nombre_y_apellidos
+      process:
+        value: value
+    field_organizacion:
+      plugin: sub_process
+      source: field_organizaci_n
+      process:
+        value: value
+    parent_id:
+      plugin: migration_lookup
+      migration: dge_migrate_nodes_request
+      no_stub: true
+      process:
+        value: value
+    parent_type:
+      plugin: default_value
+      default_value: node
+    parent_field_name:
+      plugin: default_value
+      default_value: field_request_subscriptor

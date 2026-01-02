@@ -1,0 +1,5 @@
+name: DGE Broken Links CKAN
+description: 'Menu Link - Broken Links CKAN'
+type: module
+core_version_requirement: ^10
+package: 'DGE'

@@ -1,0 +1,5 @@
+services:
+  dge_user_report_inactivity.action.report_inactivity_action:
+    class: Drupal\dge_user_report_inactivity\Plugin\Action\DgeUserReportInactivityCustomAction
+    tags:
+      - { name: action }

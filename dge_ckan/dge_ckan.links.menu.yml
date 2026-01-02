@@ -1,0 +1,29 @@
+dge_ckan.config_form:
+  title: DGE Ckan
+  parent: dge_basic_settings.admin
+  description: "DGE Ckan Connection."
+  route_name: dge_ckan.config_form
+
+dge_ckan.test:
+  title: DGE CKAN Connection Test
+  parent: dge_basic_settings.admin
+  description: "DGE CKAN connection testing page."
+  route_name: dge_ckan.test
+
+dge_ckan.datasets_page:
+  title: DGE CKAN My datasets
+  menu_name: main
+  description: "DGE CKAN My datasets"
+  route_name: dge_ckan.datasets_page
+
+dge_ckan.harvest_page:
+  title: DGE CKAN Harvest
+  menu_name: main
+  description: "DGE CKAN Harvest"
+  route_name: dge_ckan.harvest_page
+
+dge_ckan.catalogo_page:
+  title: DGE CKAN Catálogo
+  menu_name: main
+  description: "DGE CKAN Catálogo"
+  route_name: dge_ckan.catalogo_page

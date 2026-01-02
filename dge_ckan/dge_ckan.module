@@ -1,0 +1,741 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_ckan (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+include 'dge_ckan_json.inc';
+include_once(DRUPAL_ROOT . "/modules/custom/dge_ckan/libraries/dge_ckan_php_client/DgeCkanClient.php");
+
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Core\Routing\TrustedRedirectResponse;
+
+define('ORGANIZATION_VOCABULARY', \Drupal::config('dge_ckan.config')->get('dge_organization_vocabulary', 2));
+define('CKAN_ORGANIZATION_FIELD', 'field_ckan_organization_id');
+define('CKAN_ORGANIZATION_NAME_FIELD', 'field_ckan_organization_name');
+define('CKAN_USER_FIELD', 'field_ckan_user_id');
+define('CKAN_USER_NAME_FIELD', 'field_ckan_user_name');
+define('CKAN_ORGANIZATION_OLD_ID', 'field_reference_id');
+define('CKAN_PACKAGE_FIELD', 'field_ckan_package_id');
+define('CKAN_PACKAGE_NAME_FIELD', 'field_ckan_package_name');
+define('ROLE_NAME_PUBLICADOR', 'publicador');
+define('ROLE_NAME_REUTILIZADOR', 'reutilizador');
+define('TAXONOMY_TERM', 'taxonomy_term');
+define('CKAN_DELETE_FORM', 'dge_ckan_delete_form_form');
+
+
+function dge_ckan_string_convert($string)
+{
+  if (\Drupal::hasService('transliteration')) {
+    $transliteration = \Drupal::service('transliteration');
+    $language_manager = \Drupal::service('language_manager');
+    $langcode = $language_manager->getDefaultLanguage()->getId();
+    $string = $transliteration->transliterate($string, $langcode, '?');
+    $string = preg_replace("/\s+/", "-", strtolower($string));
+  } else {
+    $string = preg_replace(
+      '/[^a-z0-9]/i',
+      '',
+      iconv("UTF-8", "US-ASCII//TRANSLIT", preg_replace("/\s+/", "-", strtolower($string)))
+    );
+  }
+  $string = str_replace(array(',', ':', ';', '(', ')', '.', '#', '@', '/'), '', $string);
+  if (strlen($string) > 100) {
+    $string = substr($string, 0, 100);
+  }
+  return $string;
+}
+
+
+function dge_ckan_get_id_from_response($response)
+{
+  if (isset($response['result']['id'])) {
+    return $response['result']['id'];
+  } else if (isset($response['id'])) {
+    return $response['id'];
+  } else {
+    return false;
+  }
+}
+
+
+function dge_ckan_get_id_from_term($term)
+{
+
+  if (isset($term->field_ckan_organization_id)) {
+    return $term->field_ckan_organization_id->value;
+  } else {
+    return false;
+  }
+}
+
+
+function dge_ckan_get_name_from_term($term)
+{
+
+  if (isset($term->field_ckan_organization_name)) {
+    return $term->field_ckan_organization_name->value;
+  } else {
+    return false;
+  }
+}
+
+function dge_ckan_get_id_from_user($account)
+{
+  return $account->field_ckan_user_id->value;
+}
+
+
+function dge_ckan_get_organization_id_from_user($account)
+{
+  if (!empty($account) && isset($account->field_organizacion->target_id)) {
+    $tid = $account->field_organizacion->target_id;
+    $term = \Drupal::entityTypeManager()->getStorage(TAXONOMY_TERM)->load($tid);
+    if ($organization_id = dge_ckan_get_id_from_term($term)) {
+      return $organization_id;
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function dge_ckan_get_organization_name_from_user($account)
+{
+  if (!empty($account) && isset($account->field_organizacion->target_id)) {
+    $tid = $account->field_organizacion->target_id;
+    $term = \Drupal::entityTypeManager()->getStorage(TAXONOMY_TERM)->load($tid);
+    if ($organization_id = dge_ckan_get_name_from_term($term)) {
+      return $organization_id;
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function dge_ckan_is_organization_modify($account)
+{
+  return isset($account->original->field_organizacion)
+    && $account->original->field_organizacion->target_id != $account->field_organizacion->target_id;
+}
+
+function dge_ckan_init_class()
+{
+  global $conf;
+
+  $apiUrl =  \Drupal::config('dge_ckan.config')->get('ckan_host');
+  $apiKey = \Drupal::config('dge_ckan.config')->get('ckan_api_key');
+
+  $ckan = new DgeCkanClient($apiUrl, $apiKey, $conf, \Drupal::config('dge_ckan.config')->get('dge_devel_debug', false));
+
+  return $ckan;
+}
+
+
+function dge_ckan_is_user_valid($account)
+{
+  return $account->status  &&
+    (dge_user_has_role_name(ROLE_NAME_PUBLICADOR, $account) || dge_user_has_role_name(ROLE_NAME_REUTILIZADOR, $account));
+}
+
+
+function dge_ckan_is_user_submitted_valid($account)
+{
+  if (!isset($account->status)) {
+    return false;
+  } else {
+    return dge_ckan_is_user_valid((object)$account);
+  }
+}
+
+/**
+ * Implements hook_taxonomy_term_presave().
+ * @param $term
+ */
+function dge_ckan_taxonomy_term_presave($term)
+{
+
+
+  if ($term->bundle() == ORGANIZATION_VOCABULARY) {
+    $ckan = dge_ckan_init_class();
+    if (empty($term->id())) {
+      $operation = 'create';
+      $response = $ckan->request(
+        'organization_create',
+        dge_ckan_string_convert($term->label()),
+        $term->label(),
+        dge_ckan_organization_generate_extras_values($term)
+      );
+    }
+    elseif ($ckan_id = dge_ckan_get_id_from_term($term)) {
+      $operation = 'update';
+      $response = $ckan->request(
+        'organization_patch',
+        array(
+          'id' => $ckan_id,
+          'name' => dge_ckan_string_convert($term->label()),
+          'title' => $term->label(),
+          'extras' => dge_ckan_organization_generate_extras_values($term)
+        )
+      );
+    }
+    else {
+      dge_ckan_error_exit(
+        'taxonomy/term/' . $term->id() . '/edit',
+        t(
+          'CKAN ID does not exist in !name organization. Organization is not updated.',
+          array('!name' => $term->label())
+        ),
+        'dge_ckan_taxonomy_term_presave CKAN ID value not exists'
+      );
+      return;
+    }
+    if (isset($term->field_reference_id)) {
+      if (!dge_ckan_organization_valid_reference_id($term)) {
+        dge_ckan_error_exit(
+          'admin/structure/taxonomy/organizaciones',
+          t(
+            '!name contains an invalid Reference id, empty the field or set a free id',
+            array('!name' => $term->label())
+          ),
+          'dge_ckan_taxonomy_term_presave invalid Reference ID'
+        );
+        return;
+      } elseif (empty($term->field_reference_id->value)) {
+        $term->field_reference_id->value = dge_ckan_organization_generate_reference_id();
+      }
+    }
+
+    if ($response['success']) {
+      if ($ckan_id = dge_ckan_get_id_from_response($response)) {
+        if (!is_null(FieldStorageConfig::loadByName(TAXONOMY_TERM, CKAN_ORGANIZATION_FIELD, 'organizaciones'))) {
+          $term->field_ckan_organization_id->value = $ckan_id;
+          $term->field_ckan_organization_name->value = dge_ckan_string_convert($term->label());
+          if ($operation == 'create') {
+            \Drupal::logger('dge_ckan')->info('Organization created in CKAN and associated in Drupal');            
+          } else {
+            \Drupal::logger('dge_ckan')->info('Organization updated in CKAN and Drupal');            
+          }
+          dge_ckan_debug(
+            'dge_ckan_taxonomy_term_presave success: ' . $operation . ' in CKAN and CKAN ID associated in drupal (debug term)',
+            $term->label()
+          );
+        }
+        else {
+          dge_ckan_error_exit(
+            'admin/structure/taxonomy/organizaciones',
+            t(
+              '!name organization has not been associated in Drupal: CKAN ID field not exists',
+              array('!name' => $term->label())
+            ),
+            'dge_ckan_taxonomy_term_presave after response CKAN ID field not exists'
+          );
+          return;
+        }
+      }
+      else {
+        if ($error_ckan = dge_ckan_get_error_ckan_response($response))
+          \Drupal::logger('dge_ckan')->error($error_ckan);                
+        dge_ckan_error_exit(
+          'admin/structure/taxonomy/organizaciones',
+          t('Organization has not been created/updated or CKAN or Drupal'),
+          'dge_ckan_taxonomy_term_presave after response CKAN ID not exists'
+        );
+        return;
+      }
+    }
+    else {
+      if ($error_ckan = dge_ckan_get_error_ckan_response($response))
+        \Drupal::logger('dge_ckan')->error($error_ckan);  
+      dge_ckan_error_exit(
+        'admin/structure/taxonomy/organizaciones',
+        t('Organization has not been created/updated or CKAN or Drupal'),
+        'dge_ckan_taxonomy_term_presave CKAN response error'
+      );
+      return;
+    }
+  }
+}
+
+/**
+ * Implements hook_taxonomy_term_delete().
+ * @param $term
+ */
+function dge_ckan_taxonomy_term_delete($term)
+{
+  if ($term->bundle() == ORGANIZATION_VOCABULARY && !isset($_SESSION[CKAN_DELETE_FORM])) {
+    dge_ckan_taxonomy_term_delete_process($term);
+  }
+}
+
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ * @param $form
+ * @param $form_state
+ * @param $form_id
+ */
+function dge_ckan_form_taxonomy_form_term_alter(&$form, &$form_state, $form_id)
+{
+  if (isset($form['delete']['#value']) && $form['delete']['#value']) {
+    if ($form['#term']->bundle() == ORGANIZATION_VOCABULARY) {
+      $form['description']['#markup'] .= "<br/>" . t('Deleting this organization delete related organization in CKAN');
+      $form['#submit'][] = 'dge_ckan_taxonomy_term_form_delete_submit';
+    }
+  }
+}
+
+/**
+ * @param $form
+ * @param $form_state
+ */
+function dge_ckan_taxonomy_term_form_delete_submit(&$form, &$form_state)
+{
+  // Check if confirm_delete button is pressed
+  if ($form_state['confirm_delete']) {
+    $_SESSION[CKAN_DELETE_FORM] = true;
+    dge_ckan_taxonomy_term_delete_process($form_state['term']);
+  }
+}
+
+/**
+ * @param $term
+ */
+function dge_ckan_taxonomy_term_delete_process($term)
+{
+  if ($term->bundle() == ORGANIZATION_VOCABULARY) {
+    if (isset($_SESSION[CKAN_DELETE_FORM])) {
+      unset($_SESSION[CKAN_DELETE_FORM]);
+    }
+    if ($ckan_id = dge_ckan_get_id_from_term($term)) {
+      $ckan = dge_ckan_init_class();
+      $response = $ckan->request(
+        'organization_delete',
+        $ckan_id
+      );
+      if ($response['success']) {
+        \Drupal::logger('dge_ckan')->info('Organization deleted in CKAN');  
+      } else {
+        \Drupal::logger('dge_ckan')->error('Error in connexion with CKAN. Organization is not deleted in CKAN');  
+        dge_ckan_debug('dge_ckan_taxonomy_term_delete response error (debug response)', $response);
+      }
+    } else {
+      \Drupal::logger('dge_ckan')->info('CKAN ID does not exist. Organization is not deleted in CKAN'); 
+      dge_ckan_debug('dge_ckan_taxonomy_term_delete ckan_id not exists (debug term)', $term->label());
+    }
+  }
+}
+
+/**
+ * Implements hook_user_presave().
+ * @param $account
+ */
+function dge_ckan_user_presave($account)
+{
+
+  if (dge_ckan_is_user_submitted_valid($account)) {
+    $ckan = dge_ckan_init_class();
+    $ckan_user_id = dge_ckan_get_id_from_user($account);
+    if (!$ckan_user_id) {
+      $operation = 'create';
+      $response = $ckan->request(
+        'user_create',
+        dge_ckan_string_convert($account->name->value),
+        $account->mail->value,
+        \Drupal::service('password_generator')->generate(),
+        $account->name->value
+      );
+    } else {
+      $operation = 'update';
+      $response = $ckan->request(
+        'user_update',
+        array(
+          'id' => $ckan_user_id,
+          'name' => dge_ckan_string_convert($account->name->value),
+          'email' => $account->mail->value,
+          'password' => \Drupal::service('password_generator')->generate()
+        )
+      );
+    }
+
+    $userCurrent = \Drupal::currentUser();
+    $isAdmin = dge_user_is_administrator_user($userCurrent);
+
+    if ($response['success']) {
+      if ($ckan_id = dge_ckan_get_id_from_response($response)) {
+        $account->field_ckan_user_id->value = $ckan_id;
+        $account->field_ckan_user_name->value = dge_ckan_string_convert($account->name->value);
+        $_SESSION['dge_ckan_create_admin_ckan_id'] = $ckan_id;
+        
+
+        if ($operation == 'create' && $isAdmin) {
+          \Drupal::logger('dge_ckan')->info('User created in CKAN and associated in Drupal');
+        } elseif($operation == 'update' && $isAdmin){
+          \Drupal::logger('dge_ckan')->info('User updated in CKAN and Drupal');
+        }
+        dge_ckan_debug(
+          'dge_ckan_user_presave success: ' . $operation . ' in CKAN and CKAN ID associated in drupal (debug account)',
+          $account->name->value
+        );
+
+        if ($operation == 'update') {
+          if (!$account->status) {
+            $account->status = true;
+          }
+          if (dge_ckan_is_organization_modify($account)) {
+            dge_ckan_organization_member_delete($account->original);
+          }
+          dge_ckan_organization_member_create($account);
+        }
+      }
+      else {
+        if($isAdmin){
+          if ($error_ckan = dge_ckan_get_error_ckan_response($response)) {
+            \Drupal::logger('dge_ckan')->error($error_ckan); 
+          }
+          dge_ckan_error_exit(
+            'admin/people',
+            t('User has not been created/updated or CKAN or Drupal'),
+            'dge_ckan_user_presave after response CKAN ID not exists'
+          );
+        }
+        return;
+      }
+    }
+    else {
+      if($isAdmin){
+        if ($error_ckan = dge_ckan_get_error_ckan_response($response)) {
+          \Drupal::logger('dge_ckan')->error($error_ckan); 
+        }
+        dge_ckan_error_exit(
+          'admin/people',
+          t('User has not been created/updated or CKAN or Drupal'),
+          'dge_ckan_taxonomy_term_presave CKAN response error'
+        );
+      }
+      return;
+    }
+  }
+}
+
+
+/**
+ * @param $account
+ * @param $ckan_user_id
+ */
+function dge_ckan_organization_member_create($account, $ckan_user_id = false)
+{
+  if (dge_ckan_is_user_valid($account)) {
+    $organization_id = dge_ckan_get_organization_id_from_user($account);
+    $ckan_id = ($ckan_user_id) ? $ckan_user_id : dge_ckan_get_id_from_user($account);
+    if ($ckan_id && $organization_id) {
+      $ckan = dge_ckan_init_class();
+
+      $response = $ckan->request(
+        'organization_member_create',
+        $organization_id,
+        $ckan_id,
+        'editor'
+      );
+      if ($response['success']) {
+        if ($ckan_id = dge_ckan_get_id_from_response($response)) {
+          \Drupal::logger('dge_ckan')->info('User associated with Organization in CKAN'); 
+          dge_ckan_debug('dge_ckan_organization_member_create after user save (debug account)', $account->name->value);
+        }
+        else {
+          \Drupal::logger('dge_ckan')->info('CKAN ID does not exist'); 
+          dge_ckan_debug(
+            'dge_ckan_organization_member_create response ckan_id not exists (debug account)',
+            $account->name->value
+          );
+        }
+      }
+      else {
+        if ($error_ckan = dge_ckan_get_error_ckan_response($response)) {
+          \Drupal::logger('dge_ckan')->error($error_ckan); 
+        }
+        dge_ckan_debug('dge_ckan_organization_member_create response error (debug response)', $response);
+        return;
+      }
+    }
+    else {
+      if (!$ckan_id) {
+        \Drupal::logger('dge_ckan')->error('User associated CKAN ID is not configured in Drupal'); 
+      }
+      if (!$organization_id) {
+        if ($account && isset($account->field_otra_organizacion) && $account->field_otra_organizacion->value) {
+          \Drupal::logger('dge_ckan')->info('Organization associated CKAN ID is not configured in Drupal because you should create organization after sending this form'); 
+        } else {
+          \Drupal::logger('dge_ckan')->info('Organization associated CKAN ID is not configured in Drupal'); 
+        }
+      }
+    }
+  }
+}
+
+/**
+ * @param $account
+ */
+function dge_ckan_organization_member_delete($account)
+{
+  if (isset($account)) {
+    $organization_id = dge_ckan_get_organization_id_from_user($account);
+    $ckan_id = dge_ckan_get_id_from_user($account);
+
+    if ($ckan_id && $organization_id) {
+      $ckan = dge_ckan_init_class();
+
+      $response = $ckan->request(
+        'organization_member_delete',
+        $organization_id,
+        $ckan_id
+      );
+      if ($response['success']) {
+        \Drupal::logger('dge_ckan')->info('User dissociated with previous Organization in CKAN');
+        
+        dge_ckan_debug(
+          'dge_ckan_organization_member_delete after user save (debug account)',
+          $account->name->value
+        );
+      }
+      else {
+        if ($error_ckan = dge_ckan_get_error_ckan_response($response)) {
+          \Drupal::logger('dge_ckan')->error($error_ckan);
+        }
+
+        dge_ckan_debug(
+          'dge_ckan_organization_member_delete response error (debug response)',
+          $response
+        );
+        return;
+      }
+    }
+  }
+}
+
+
+/**
+ * @param $form
+ * @param $form_state
+ * @param $form_id
+ */
+function dge_ckan_form_user_cancel_confirm_form_alter(&$form, &$form_state, $form_id)
+{
+  $account =  $form['_account']['#value'];
+  if (dge_user_has_role_name(ROLE_NAME_PUBLICADOR, $account) || dge_user_has_role_name(ROLE_NAME_REUTILIZADOR, $account)) {
+    $form['description']['#markup'] .= "<br/>" . t('Deleting this user does not deleted related organization in CKAN');
+  }
+}
+
+/**
+ *
+ * @param $term
+ * @return array
+ */
+function dge_ckan_organization_generate_extras_values($term)
+{
+
+  $fields = array(
+    'C_ID_UD_ORGANICA' => 'field_c_id_ud_organica',
+    'C_ID_DEP_UD_PRINCIPAL' => 'field_c_id_dep_ud_principal',
+    'C_DNM_DEP_UD_PRINCIPAL' => 'field_root_designation_unit'
+  );
+
+  $extras_values = array();
+  foreach ($fields as $label => $name) {
+    if (isset($term->{$name})) {
+      $extras_values[] = array(
+        'key' => $label,
+        'value' => $term->{$name}->value
+      );
+    }
+  }
+  return $extras_values;
+}
+
+/**
+ * @param $response
+ */
+function dge_ckan_get_error_ckan_response($response)
+{
+  $error_msg = false;
+  if (!$response['success'] && is_array($response['error'])) {
+    $error_lines = array();
+    foreach ($response['error'] as $field_error => $msgs_error) {
+      if (is_array($msgs_error)) {
+        $error_lines[] = t('Error in field ') . $field_error . ': ' . implode(
+          ', ',
+          array_map(function ($msg) {
+            return t(strtr('!msg', array('!msg' => $msg)));
+          }, $msgs_error)
+        );
+      } elseif ($field_error == '__type') {
+        $error_lines[] = t('Error type') . ': ' . $msgs_error;
+      }
+    }
+    $error_msg = implode("<br/>", $error_lines);
+  }
+  return $error_msg;
+}
+
+/**
+ * @param $redirect_url
+ * @param $message
+ * @param $context
+ */
+function dge_ckan_error_exit($redirect_url, $message, $context)
+{
+  \Drupal::logger('dge_ckan')->error($message);
+  dge_ckan_debug($context . '. Process aborted', $message->render());
+  return new TrustedRedirectResponse($redirect_url);
+}
+
+/**
+ * @param $name
+ * @param $vars
+ */
+function dge_ckan_debug($name, $vars)
+{
+  $message = strtr('!name: <pre>!export</pre>', array('!name' => $name, '!export' => print_r($vars, 1)));
+  \Drupal::logger('dge_ckan')->error($message);
+}
+
+/**
+ * @param $term
+ */
+function dge_ckan_organization_valid_reference_id($term)
+{
+  if (!empty($term->field_reference_id->getValue())) {
+    $storage = \Drupal::entityTypeManager()->getStorage(TAXONOMY_TERM);
+    $query = $storage->getQuery()
+      ->accessCheck(true)
+      ->condition('vid', ORGANIZATION_VOCABULARY)
+      ->condition(CKAN_ORGANIZATION_OLD_ID . '.value', $term->field_reference_id->value);
+    $result = $query->execute();
+
+    if (!empty($result[TAXONOMY_TERM])) {
+      $term_tid = key($result[TAXONOMY_TERM]);
+      if (empty($term->tid) || sizeof($result[TAXONOMY_TERM]) > 1 || $term_tid != $term->tid) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function dge_ckan_organization_generate_reference_id()
+{
+  $new_id = 1;
+  $storage = \Drupal::entityTypeManager()->getStorage(TAXONOMY_TERM);
+  $query = $storage->getQuery()
+    ->accessCheck(true)
+    ->condition('vid', ORGANIZATION_VOCABULARY)
+    ->condition(CKAN_ORGANIZATION_OLD_ID . '.value', 0, '>')
+    ->sort(CKAN_ORGANIZATION_OLD_ID . '.value', 'DESC')
+    ->range(0, 1);
+  $tids = $query->execute();
+
+  if (!empty($tids)) {
+    $term_tid = reset($tids);
+    $term = $storage->load($term_tid);
+    $current_value = $term->field_reference_id->value;
+    $new_id = $current_value + 1;
+  }
+  return $new_id;
+}
+
+
+function getPathAPICkan (){
+  $ckanConfig = \Drupal::config('dge_ckan.config');
+  $apiUrl = $ckanConfig->get('ckan_host');
+	return $apiUrl.'action';
+}
+  
+
+function dge_ckan_simple_sitemap_links_alter(array &$links, \Drupal\simple_sitemap\Entity\SimpleSitemap $sitemap) {
+  
+foreach ($links as &$link) {
+    if (preg_match('#/es$#', $link['url'])) {
+      $link['url'] = preg_replace('#/es$#', '/es/', $link['url']);
+      break;
+    }
+  }
+  
+  $path = getPathAPICkan();
+  $url = $path."/package_search?rows=1";
+
+  $content = file_get_contents($url);
+  $contentPhp = json_decode($content);
+  $countCkan = $contentPhp->result->count ?? 0;
+
+  if ($countCkan > 0) {
+    setUrlsApiCkan($links, $countCkan);
+  }
+}
+
+
+function setUrlsApiCkan(array &$links, $counter){
+  global $base_url;
+  global $language;
+  
+  $rows = 1000;
+  $path = getPathAPICkan();
+  
+  $fq = '(dataset_type:dataset OR dataset_type:dataservice)';
+  $fq_encoded = urlencode($fq);
+
+  for ($start = 0; $start < $counter; $start += $rows) {
+
+    $url = $path."/package_search?rows=".$rows."&start=".$start."&fq=".$fq_encoded;
+    
+    $content = file_get_contents($url);
+    $contentPhp = json_decode($content);
+    
+    if (!isset($contentPhp->result->results)) {
+      continue; 
+    }
+
+    $resultsObject = $contentPhp->result->results;
+
+    foreach ($resultsObject as $result){
+      $name = $result->name ?? null;
+      $metadata_modified = $result->metadata_modified ?? null;
+
+      if (!$name || !$metadata_modified) {
+        continue; 
+      }
+
+      try {
+        $date = new DateTime($metadata_modified);
+        $date->setTimezone(new DateTimeZone('Europe/Madrid'));
+        $metadata_modified_formatted = $date->format('Y-m-d\TH:i:sP');
+      } catch (\Exception $e) {
+        $metadata_modified_formatted = $metadata_modified;
+      }
+      $lan= 'es';
+      $links[] = [
+        'url' => $base_url."/".$lan."/catalogo/".$name,
+        'langcode' => $lan,
+        'lastmod' => $metadata_modified_formatted,
+        'priority' => 0.5,
+      ];
+    }
+  }
+  return $links;
+}

@@ -1,0 +1,5 @@
+name: DGE Custom URL Block More View
+type: module
+description: Custom URL for sector blocks because the view URL has a size limit and we need to generate it customised.
+package: DGE
+core_version_requirement: ^10

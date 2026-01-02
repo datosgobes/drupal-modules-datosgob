@@ -1,0 +1,3 @@
+access broken links views:
+  title: 'Access to Broken Links views'
+  description: 'Permite acceder a las vistas de administrador y organismo de Enlaces rotos dependiendo del rol del usuario.'

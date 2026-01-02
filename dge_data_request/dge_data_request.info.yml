@@ -1,0 +1,5 @@
+name: DGE Data Request
+description: "Custom actions for Data requests"
+type: module
+core_version_requirement: ^10
+package: "DGE"

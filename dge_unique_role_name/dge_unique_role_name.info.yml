@@ -1,0 +1,5 @@
+name: DGE Unique Role Name
+type: module
+description: 'Module to set role name as unique'
+package: 'DGE'
+core_version_requirement: ^10

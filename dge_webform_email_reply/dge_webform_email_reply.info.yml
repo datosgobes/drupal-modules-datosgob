@@ -1,0 +1,7 @@
+name: 'DGE Webform Email Reply'
+description: 'A webform helper module that allows users to send an email reply to contact submissions'
+core_version_requirement: ^8 || ^9 || ^10
+dependencies:
+  webform: 'drupal:webform'
+package: Webform
+type: module

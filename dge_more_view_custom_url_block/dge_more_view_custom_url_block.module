@@ -1,0 +1,56 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_more_view_custom_url_block (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use Drupal\Core\Url;
+use Drupal\taxonomy\Entity\Term;
+
+function dge_more_view_custom_url_block_preprocess_views_view(&$variables) {
+  $view = $variables['view'];
+  $config_views = [
+    'noticias_o_eventos' => [
+      'display' => 'block_1',
+      'label' => t('Todas las noticias'),
+    ],
+    'conocimiento_o_entrevistas' => [
+      'display' => 'block_1',
+      'label' => t('Todas los recursos'),
+    ],
+  ];
+
+  if (isset($config_views[$view->id()]) && $view->current_display === $config_views[$view->id()]['display']) {
+    $conf = $config_views[$view->id()];
+    $variables['etiqueta_label'] = $conf['label'];
+
+    if (isset($variables['more']['#url']) && $variables['more']['#url'] instanceof Url) {
+      $url_obj = $variables['more']['#url'];
+
+      $argumento = $view->args[0] ?? NULL;
+      if ($argumento && is_numeric($argumento)) {
+        $term = Term::load($argumento);
+        if ($term) {
+          $nombre = $term->label();
+          $slug = \Drupal::service('pathauto.alias_cleaner')->cleanString($nombre);
+          $custom_url= $url_obj->toString().'/'.$slug.'-'.$argumento;
+          $variables['more']['#url'] =  Url::fromUserInput($custom_url);
+        }
+      }
+    }
+  }
+}

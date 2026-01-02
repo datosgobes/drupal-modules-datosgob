@@ -1,0 +1,5 @@
+name: DGE NODE ADD restricted
+type: module
+description: 'Módulo que Restringe el acceso a node/add para usuarios anonimos.'
+core_version_requirement: ^10
+package: 'DGE'

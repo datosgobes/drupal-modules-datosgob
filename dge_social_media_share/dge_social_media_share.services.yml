@@ -1,0 +1,5 @@
+services:
+  dge_social_media_share.dge_social_media_share_subscriber:
+    class: Drupal\dge_social_media_share\EventSubscriber\DgeSocialMediaShareSubscriber
+    tags:
+      - { name: event_subscriber }

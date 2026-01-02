@@ -1,0 +1,247 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_unpublish_confirmation (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use Drupal\Core\Form\FormInterface;
+use Drupal\Core\Form\FormStateInterface;
+
+const DESCARTADO ="descartado" ;
+const DESPUBLICADO = "despublicado";
+
+/**
+ * Implements hook_mail().
+ */
+function dge_unpublish_confirmation_mail($key, &$message, $params) {
+    switch ($key) {
+        case 'unpublish_confirmation':
+
+            $message['from'] = \Drupal::config('system.site')->get('mail');
+            $message['subject'] = $params['subject'];
+            $message['body'][] = $params['body'];
+        break;
+    }
+}
+
+
+function show_descarded_reason_form(&$form,FormStateInterface $form_state){
+
+  if(!$form_state->getUserInput() || !$form_state->getUserInput()['moderation_state'] || $form_state->getUserInput()['moderation_state'][0]['state'] == DESCARTADO){
+    unset($form['field_motivo_descarte']['widget']['#options']["_none"]);
+    $form['field_motivo_descarte']['#access'] = true;
+    $form['field_motivo_descarte']['widget']['#empty_option'] = t('- Select -');
+    $form['field_motivo_descarte']['#weight'] = 199;
+    $form['field_motivo_descarte']['#group'] = 'footer';
+
+    $form['field_motivo_descarte']['#states'] =
+    [
+      'visible' => [
+        ':input[name="moderation_state[0][state]"]' => ['value' => DESCARTADO]
+      ],
+    ];
+    $form['field_motivo_descarte']['widget']['#states'] =
+    [
+      'required' => [
+        ':input[name="moderation_state[0][state]"]' => ['value' => DESCARTADO],
+      ],
+    ];
+  }
+}
+
+
+function show_discarded_reason_value(&$form) {
+  $form['field_motivo_descarte']['#access'] = true;
+  $form['field_motivo_descarte']['widget']['#disabled'] = TRUE;
+  $form['field_motivo_descarte']['widget']['#title'] = t('Motivo de descarte');
+}
+
+function is_node_discarded(FormInterface $form_object) {
+  $node = $form_object->getEntity();
+  $is_discarded = $node && $node->hasField('moderation_state') && $node->get('moderation_state')->value === DESCARTADO;
+  $has_discarded_reason = $node && !$node->get('field_motivo_descarte')->isEmpty();
+
+  return $is_discarded && $has_discarded_reason;
+}
+
+
+function show_emails_options(&$form){
+
+  $form['enviar_email'] = [
+    '#type' => 'checkbox',
+      '#title' => t('Habilitar enviar email'),
+      '#states' => [
+        'visible' => array(
+          array(':input[name="moderation_state[0][state]"]' => array('value' => DESCARTADO)),
+            'or',
+          array(':input[name="moderation_state[0][state]"]' => array('value' => DESPUBLICADO)),
+        ),
+      ],
+      '#weight' => 201,
+      '#group' => 'footer'
+  ];
+
+
+  $form['email_fields'] = [
+    '#weight' => 202,
+    '#type' => 'container',
+    '#attributes' => ['id' => 'email-form-fields'],
+    '#states' => [
+      'visible' => [
+        [
+          ':input[name="enviar_email"]' => array('checked' => TRUE),
+        ]
+      ]
+    ],
+    '#group' => 'footer'
+  ];
+
+  $form['email_fields']['asunto'] = [
+    '#weight' => 203,
+    '#states' => [
+      'visible' => [
+      [
+        [':input[name="moderation_state[0][state]"]' => array('value' => DESPUBLICADO)],
+        [':input[name="moderation_state[0][state]"]' => array('value' => DESCARTADO)]]
+      ]
+    ],
+    '#type' => 'textfield',
+    '#title' => t('Asunto'),
+    '#group' => 'email_fields'
+  ];
+
+  $form['email_fields']['body'] = [
+    '#weight' => 204,
+    '#states' => [
+      'visible' => [
+      [
+        [':input[name="moderation_state[0][state]"]' => array('value' => DESPUBLICADO)],
+        [':input[name="moderation_state[0][state]"]' => array('value' => DESCARTADO)]]
+      ]
+    ],
+    '#type' => 'textarea',
+  '#title' => t('Cuerpo del email'),
+  '#group' => 'email_fields'
+  ];
+
+}
+
+function dge_unpublish_confirmation_validate($form, FormStateInterface $form_state) {
+  $node = $form_state->getFormObject()->getEntity();
+  $paragraphs_field = $form_state->getValue('field_contenido_paragrhaphs');
+  foreach ($paragraphs_field as $paragraph) {
+    if (isset($paragraph['subform']) && isset($paragraph['subform']['field_url'])) {
+      $url = $paragraph['subform']['field_url'];
+      if (strpos($url[0]['uri'], 'http://') === 0) {
+        $form_state->setErrorByName('field_url', t("HTTP URLs are not allowed."));
+      }
+    }
+  }
+}
+
+/**
+ * implements hook_form_alter
+ *
+ * @param array $form
+ * @param FormStateInterface $form_state
+ * @param string $form_id
+ * @return void
+ */
+function dge_unpublish_confirmation_form_alter(&$form, FormStateInterface $form_state, $form_id){
+
+  $form_object = $form_state->getFormObject();
+  if (!$form_object instanceof \Drupal\node\NodeForm) {
+    return;
+  }
+
+  if ($form_id == 'node_sectores_edit_form' || $form_id == 'node_sectores_form') {
+    $form['#validate'][] = 'dge_unpublish_confirmation_validate';
+  }
+
+  $formIds = [
+    'node_aplicacion_edit_form',
+    'node_aplicacion_form',
+    'node_empresa_reutilizadora_edit_form',
+    'node_empresa_reutilizadora_form',
+    'node_peticion_de_datos_form',
+    'node_peticion_de_datos_edit_form',
+    'node_iniciativa_edit_form',
+    'node_iniciativa_form'
+  ];
+
+  $current_user = \Drupal::currentUser();
+  
+  if(in_array($form_id, $formIds) && !$current_user->isAnonymous()) {
+
+    if(is_node_discarded($form_object)) {
+      show_discarded_reason_value($form);
+    } else {
+      $form['field_motivo_descarte']['#access'] = false;
+    }
+  
+    if($form['moderation_state']['#access'] == true && $form['moderation_state']['widget'][0]['state']['#access'] == TRUE){
+      
+      if(!is_node_discarded($form_object)) {
+        show_descarded_reason_form($form, $form_state, );
+      }
+      show_emails_options($form);
+
+      $form['despublicar_descartar'] = [
+          '#type' => 'checkbox',
+          '#title' => t('El contenido va a cambiar de estado. ¿Desea continuar?'),
+          '#states' => [
+              'visible' => array(
+                  array(':input[name="moderation_state[0][state]"]' => array('value' => DESCARTADO)),
+                  array(':input[name="moderation_state[0][state]"]' => array('value' => DESPUBLICADO)),
+                ),
+              'required' => array(
+                  [':input[name="moderation_state[0][state]"]' => array('value' => DESPUBLICADO)],
+                  [':input[name="moderation_state[0][state]"]' => array('value' => DESCARTADO)],
+              ),
+                  [':input[name="despublicar_descartar"]' => array('checked' => TRUE)],
+            ],
+          '#weight' => 200,
+          '#group' => 'footer'
+      ];
+
+      if(isset($form['actions'])){
+        array_unshift($form['actions']['submit']['#submit'], '_dge_unpublish_confirmation_submit');
+      } elseif($form['#submit']){
+        array_unshift($form['#submit'], '_dge_unpublish_confirmation_submit');
+      }
+    }
+  }
+}
+
+function _dge_unpublish_confirmation_submit(&$form, FormStateInterface $form_state){
+
+  if($form_state->getValue('enviar_email')){
+    
+    $mailManager = \Drupal::service('plugin.manager.mail');
+    $module = 'dge_unpublish_confirmation';
+    $key = 'unpublish_confirmation';
+    $to = $form_state->getValue('field_correo_electronico');
+    $langcode = \Drupal::languageManager()->getCurrentLanguage();
+
+    $params['subject'] = $form['email_fields']['asunto']['#value'];
+    $params['body'] = $form['email_fields']['body']['#value'];
+
+    $send = TRUE;
+    $mailManager->mail($module, $key, $to[0]['value'], $langcode, $params, NULL, $send);
+
+  }
+}

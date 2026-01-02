@@ -1,0 +1,47 @@
+id: dge_migrate_field_collection_ext_files
+label: Custom field collections migration (ficheros_externos_adjuntos) from Drupal 7
+migration_group: dge_migrate
+source:
+  plugin: d7_field_collection_item
+  field_name: field_ficheros_externos_adjuntos
+
+destination:
+  plugin: entity_reference_revisions:paragraph
+  default_bundle: ficheros_externos_adjuntos
+  update_existing: true
+
+process:
+    field_tipo:
+      plugin: sub_process
+      source: field_ext_file_tipo
+      process:
+        value: value
+    field_titulo:
+      plugin: sub_process
+      source: field_ext_file_titulo
+      process:
+        value: value
+    field_url:
+      plugin: sub_process
+      source: field_ext_file_url
+      process:
+        uri: url
+        title: title
+    field_tamano:
+      plugin: sub_process
+      source: field_ext_file_size
+      process:
+        value: value
+    parent_id:
+      plugin: migration_lookup
+      migration: dge_migrate_nodes
+      no_stub: true
+      process:
+        value: value
+    parent_type:
+      plugin: default_value
+      default_value: node
+    parent_field_name:
+      plugin: default_value
+      default_value: field_ficheros_externos_adjuntos
+

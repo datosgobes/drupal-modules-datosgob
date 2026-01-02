@@ -1,0 +1,5 @@
+dge_email_footer_header.config_form:
+  title: DGE Custom header and footer email
+  parent: dge_basic_settings.admin
+  description: "DGE Custom header and footer email"
+  route_name: dge_email_footer_header.config_form

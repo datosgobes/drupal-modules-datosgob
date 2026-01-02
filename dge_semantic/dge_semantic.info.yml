@@ -1,0 +1,5 @@
+name: DGE Semantics
+description: Add semantic information to webpages
+type: module
+core_version_requirement: ^10
+package: "DGE"

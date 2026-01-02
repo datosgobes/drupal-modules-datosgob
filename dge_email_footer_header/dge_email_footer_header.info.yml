@@ -1,0 +1,8 @@
+name: DGE Custom header and footer email
+description: "Customized header and footer of emails"
+type: module
+core_version_requirement: ^10
+package: "DGE"
+configure: dge_email_footer_header.config_form
+dependencies:
+  - drupal:mimemail

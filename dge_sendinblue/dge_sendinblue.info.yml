@@ -1,0 +1,6 @@
+name : DGE SendinBlue
+description : 'Sendinblue API connection and subscription management'
+type: module
+core_version_requirement : ^10
+package : 'DGE'
+configure: dge_sendinblue.config_form

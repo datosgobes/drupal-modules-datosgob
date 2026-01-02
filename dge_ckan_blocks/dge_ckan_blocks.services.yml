@@ -1,0 +1,3 @@
+services:
+  dge_ckan_blocks.ckan_service:
+    class: Drupal\dge_ckan_blocks\Service\CkanService

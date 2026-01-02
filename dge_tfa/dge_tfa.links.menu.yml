@@ -1,0 +1,6 @@
+dge_tfa.settings:
+  title: 'DGE TFA Settings'
+  parent: dge_basic_settings.admin
+  description: 'Configure the description for the DGE TFA module.'
+  route_name: dge_tfa.config_form
+  weight: 50

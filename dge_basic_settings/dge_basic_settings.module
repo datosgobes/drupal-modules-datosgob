@@ -1,0 +1,157 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_basic_settings (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_config_schema_info_alter().
+ */
+function dge_basic_settings_config_schema_info_alter(array &$definitions): void {
+  $definitions['system.site']['mapping']['ministry_name'] = [
+    'type' => 'label',
+    'label' => 'Ministry Name'
+  ];
+}
+
+/**
+ * Implements hook_form_alter() to add a new variable Ministry Name
+ */
+function dge_basic_settings_form_system_site_information_settings_alter(&$form, &$form_state, $form_id) {
+
+    if ($form_id == 'system_site_information_settings') {
+
+      $form['site_information']['site_slogan']['#access'] = FALSE;
+
+      $form['site_information']['ministry_name'] = [
+        '#title' => t('Ministry Name'),
+        '#type' => 'textfield',
+        '#default_value' => \Drupal::config('system.site')->get('ministry_name'),
+        '#required' => true
+      ];
+      $form['#submit'][] = 'dge_basic_settings_form_system_site_information_settings_submit';
+    }
+  }
+
+
+
+/**
+ * Implements hook_form_submit().
+ */
+function dge_basic_settings_form_system_site_information_settings_submit(&$form, &$form_state) {
+  \Drupal::configFactory()->getEditable('system.site')
+    ->set('ministry_name', $form_state->getValue(['ministry_name']))
+    ->save();
+}
+
+
+/**
+ * Implements hook_token_info().
+ */
+function dge_basic_settings_token_info(): array {
+  $info['tokens']['site']['ministry_name'] = [
+    'name' => t('Ministry Name'),
+    'description' => t('Ministry name'),
+  ];
+
+  return $info;
+}
+
+/**
+ * Implements hook_tokens().
+ */
+function dge_basic_settings_tokens(string $type, array $tokens): array {
+  $replacements = [];
+
+  if ($type === 'site') {
+    foreach ($tokens as $name => $original) {
+      if ($name === 'ministry_name') {
+        $replacements[$original] = \Drupal::config('system.site')->get('ministry_name');
+      }
+    }
+  }
+
+  return $replacements;
+}
+
+/**
+ * Implements hook_form_alter()
+ */
+function dge_basic_settings_form_alter(&$form, &$form_state, $form_id) {
+  $userCurrent = \Drupal::currentUser();
+
+  $targetFormIds = [
+    'node_aplicacion_form',
+    'node_aplicacion_edit_form',
+    'node_empresa_reutilizadora_form',
+    'node_empresa_reutilizadora_edit_form',
+    'node_peticion_de_datos_form',
+    'node_peticion_de_datos_edit_form',
+    'node_iniciativa_form',
+    'node_iniciativa_edit_form'
+  ];
+
+  if (in_array($form_id, $targetFormIds)) {
+    if(!dge_user_is_administrator_user($userCurrent)) {
+      $form['actions']['submit']['#value'] = t('Send');
+      if(strpos($form_id, '_edit_form') === false){
+        $form['actions']['submit']['#submit'][] = 'dge_basic_settings_form_submit';
+      }
+    } 
+  }
+ 
+  if (\Drupal::currentUser()->isAuthenticated()) { 
+    $form['field_acepto_las_condiciones_del']['#access'] = FALSE; 
+  }
+
+  $targetFormIds = ['node_empresa_reutilizadora_form',
+                    'node_empresa_reutilizadora_edit_form'];
+
+  
+  if (in_array($form_id, $targetFormIds) && !empty($form["field_year_create_reuse_co"])) {
+    foreach ($form["field_year_create_reuse_co"]['widget'][0]['value']['#date_part_order'] as $key => $value) {
+      if ($value == 'day') {
+        unset($form["field_year_create_reuse_co"]['widget'][0]['value']['#date_part_order'][$key]);
+      }
+      if ($value == 'month') {
+        unset($form["field_year_create_reuse_co"]['widget'][0]['value']['#date_part_order'][$key]);
+      }
+    }
+  }
+}
+
+/**
+ *
+ * @param array $form
+ * @param FormStateInterface $form_state
+ * @return void
+ */
+function dge_basic_settings_form_submit(array &$form, FormStateInterface $form_state) {
+  $messages = \Drupal::messenger()->all();
+
+  \Drupal::messenger()->deleteAll();
+
+  foreach($messages['status'] as $message){
+    if(strpos($message, '</a>') === false)
+    {
+      \Drupal::messenger()->addMessage($message, \Drupal::messenger()::TYPE_STATUS);
+    }
+  }
+}
+

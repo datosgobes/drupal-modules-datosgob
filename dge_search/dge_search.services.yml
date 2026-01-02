@@ -1,0 +1,3 @@
+services:
+  dge_search.services_api_sections:
+    class: 'Drupal\dge_search\Service\DGESearchService'

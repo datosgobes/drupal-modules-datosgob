@@ -1,0 +1,92 @@
+id: dge_migrate_comments
+label: Custom comments migration from Drupal 7
+migration_group: dge_migrate
+dependencies:
+  enforced:
+    module:
+      - dge_migrate
+
+source:
+  plugin: dge_migrate_comments
+  node_type: 
+    - blog
+    - blog_blog
+    - doc
+    - talk
+    - app
+    - request
+    - success
+    - event
+
+destination:
+  plugin: entity:comment
+  
+process:
+  # To avoid overwriting
+  # cid: cid
+  comment_type: 
+    plugin: default_value
+    default_value: comment
+  langcode:
+    plugin: static_map
+    bypass: true
+    source: language
+    map:
+      und: es
+  status: status
+  _uid_raw: uid
+  _uid_lookup:
+    - plugin: skip_on_value
+      source: '@_uid_raw'
+      value:
+        - 0
+        - '0'
+        - null
+      method: process
+    - plugin: migration_lookup
+      migration: dge_migrate_users_roles
+      source: '@_uid_raw'
+      no_stub: true
+  uid:
+    plugin: null_coalesce
+    source:
+      - '@_uid_lookup'
+      - '@_uid_raw'
+  pid:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: pid
+    -
+      plugin: migration_lookup
+      migration: dge_migrate_comments
+      no_stub: true
+      source: pid
+  entity_id:
+    plugin: migration_lookup
+    source: nid
+    migration: 
+      - dge_migrate_nodes
+      - dge_migrate_nodes_request
+    no_stub: true
+  subject: subject
+  name: name
+  mail: mail
+  homepage: homepage
+  hostname:
+    plugin: default_value
+    default_value: null
+  created: created
+  changed: changed
+  thread: thread
+  entity_type:
+    plugin: default_value
+    default_value: node
+  field_name: '@comment_type'
+  comment_body: comment_body
+migration_dependencies:
+  required:
+    - dge_migrate_nodes
+    - dge_migrate_nodes_request
+    - dge_migrate_users_roles
+  optional: {  }

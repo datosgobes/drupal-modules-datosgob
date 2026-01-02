@@ -1,0 +1,5 @@
+name: DGE Login Redirect
+type: module
+description: 'Module to redirect users to the home page after login'
+package: 'DGE'
+core_version_requirement: ^10

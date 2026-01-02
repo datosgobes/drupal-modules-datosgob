@@ -1,0 +1,5 @@
+name: DGE Email Delete Confirmation
+description: "Customized delete confirmation to add email notification"
+type: module
+core_version_requirement: ^10
+package: "DGE"

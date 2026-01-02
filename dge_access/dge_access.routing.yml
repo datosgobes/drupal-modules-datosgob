@@ -1,0 +1,7 @@
+dge_access.config_form:
+  path: '/admin/config/dge/access'
+  defaults:
+    _form: '\Drupal\dge_access\Form\DgeAccessAdminSettingsForm'
+    _title: 'Access config'
+  requirements:
+    _permission: 'administer site configuration'

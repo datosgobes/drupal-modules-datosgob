@@ -1,0 +1,7 @@
+name: DGE Dashboard querys
+description: "get querys from database CKAN for generate csv files in dashboard"
+type: module
+core_version_requirement: ^10
+package: "DGE"
+dependencies:
+  - dge_ckan:dge_ckan

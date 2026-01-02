@@ -1,0 +1,130 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_access (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+use Drupal\Core\Session\AccountInterface;
+use Drupal\node\NodeInterface;
+use Drupal\user\Entity\User;
+use Drupal\Core\Database\Database;
+
+/**
+ * Access realm for organizations
+ */
+define('DGE_ORGANIZATION_REALM','dge_organization');
+/**
+ * Access realm for editors
+ */
+define('DGE_EDITOR_REALM','dge_editor');
+
+/**
+ * Implements hook_views_data_alter().
+ */
+function dge_access_views_data_alter(array &$data) {
+  $data['node']['dge_access_node_access'] = [
+    'title' => t('DGE Access Node'),
+    'help' => t('Filter content based on user organization access.'),
+    'filter' => [
+      'id' => 'dge_access_node_access',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_node_grants().
+ *
+ */
+function dge_access_node_grants(AccountInterface $account, string $op): array {
+  $grants = [];
+  $current_user_id = \Drupal::currentUser()->id();
+  $user = User::load($current_user_id);
+
+  if ($user) {
+    if ($account->hasRole('aporta') || $account->hasRole('administrator')) {
+      return $grants;
+    }
+
+    $organization = $user->hasField('field_organizacion') ? $user->get('field_organizacion')->target_id : null;
+
+    if ($organization && ($account->hasRole('publicador') || $account->hasRole('reutilizador'))) {
+      $grants[DGE_ORGANIZATION_REALM][] = (int) $organization;
+    } elseif ($account->hasRole('editor')) {
+      $grants[DGE_EDITOR_REALM][] = 1;
+    }
+  }
+
+  return $grants;
+}
+
+/**
+ * Implements hook_node_access_records().
+ *
+ */
+function dge_access_node_access_records(NodeInterface $node): array {
+  $grants = [];
+  $sids = [];
+  $allowed_types = \Drupal::config('dge_access.settings')->get('dge_access_content_types') ?? ['aplicacion'];
+
+  $connection = \Drupal::database();
+
+  if (in_array($node->getType(), $allowed_types)) {
+    if ($node->getType() === 'peticion_de_datos') {
+      $query = $connection->select('node__field_organismo_responsable', 'nfr')
+        ->fields('nfr', ['field_organismo_responsable_target_id'])
+        ->condition('nfr.entity_id', $node->id())
+        ->execute();
+      $result = $query->fetchAssoc();
+
+      if ($result) {
+        $organismo_responsable = $result['field_organismo_responsable_target_id'];
+        $sids[] = [DGE_ORGANIZATION_REALM => $organismo_responsable];
+      }
+    } else {
+      $node_author_id = $node->getOwnerId();
+      $node_author = \Drupal\user\Entity\User::load($node_author_id);
+      if ($node_author) {
+        $organization = $node_author->get('field_organizacion') ? $node_author->get('field_organizacion')->target_id : NULL;
+      }
+
+      if ($organization) {
+        $sids[] = [DGE_ORGANIZATION_REALM => $organization];
+      } elseif ($node->getOwnerId() == 0) {
+        $sids[] = [DGE_EDITOR_REALM => 1];
+      }
+    }
+
+    if (!empty($sids)) {
+      foreach ($sids as $sdata) {
+        $realm = key($sdata);
+        $gid = current($sdata);
+
+        $grants[] = [
+          'realm' => $realm,
+          'gid' => $gid,
+          'grant_view' => 1,
+          'grant_update' => 1,
+          'grant_delete' => 0,
+          'priority' => 0,
+        ];
+      }
+    }
+  }
+
+  return $grants;
+}

@@ -1,0 +1,5 @@
+dge_access.config_form:
+  title: DGE Access
+  parent: dge_basic_settings.admin
+  description: "DGE Access configuration'."
+  route_name: dge_access.config_form

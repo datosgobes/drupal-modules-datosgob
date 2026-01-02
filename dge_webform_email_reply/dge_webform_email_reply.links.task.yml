@@ -1,0 +1,5 @@
+dge_webform_email_reply.previous:
+  title: 'Replies'
+  route_name: dge_webform_email_reply.previous
+  base_route: entity.webform_submission.canonical
+  weight: 35

@@ -1,0 +1,5 @@
+name: DGE Unpublish Confirmation
+description: 'DGE Unpublish Confirmation'
+type: module
+core_version_requirement: ^10
+package: 'DGE'

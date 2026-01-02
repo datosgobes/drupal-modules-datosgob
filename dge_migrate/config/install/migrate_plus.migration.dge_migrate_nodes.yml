@@ -1,0 +1,456 @@
+id: dge_migrate_nodes
+label: Custom nodes migration from Drupal 7
+migration_group: dge_migrate
+dependencies:
+  enforced:
+    module:
+      - dge_migrate
+
+source:
+  plugin: dge_migrate_nodes
+  node_type:
+    - blog
+    - blog_blog
+    - doc
+    - talk
+    - app
+    - success
+    - initiative
+    - event
+
+
+destination:
+  plugin: entity:node
+  
+process:
+  type:
+    plugin: static_map
+    source: type
+    map:
+      'blog': 'noticia'
+      'blog_blog': 'blog'
+      'faq': 'faq'
+      'doc': 'documentacion'
+      'talk': 'entrevista'
+      'app': 'aplicacion'
+      'success': 'empresa_reutilizadora'
+      'initiative': 'iniciativa'
+      'event': 'evento'
+      'speakers_aporta': 'ponentes_aporta'
+  langcode:
+    plugin: static_map
+    bypass: true
+    source: language
+    map:
+      und: es
+  status: status
+  moderation_state: moderation_state
+  uid:
+    plugin: migration_lookup
+    migration: dge_migrate_users_roles
+    no_stub: true
+    source: uid
+  title: title
+  created: created
+  changed: changed
+  promote: promote
+  sticky: sticky
+  field_fecha_publicacion_contenid:
+    plugin: format_date
+    from_format: 'U'
+    to_format: 'Y-m-d\TH:i:s'
+    source: publish_d7
+  field_descripcion: field_body
+  field_titulo_contenido_relaciona: field_titulo_contenido_relaciona_d7
+  field_contenido_relacionado:
+    plugin: sub_process
+    source: field_related_content_d7
+    process:
+      target_id:
+        -
+          plugin: skip_on_empty
+          method: process
+          source: target_id
+        -
+          plugin: migration_lookup
+          migration: dge_migrate_nodes
+          no_stub: true
+          source: target_id
+  field_etiquetas:
+    plugin: sub_process
+    source: d7_tidTags
+    process:
+      target_id:
+        -
+          plugin: skip_on_empty
+          method: process
+          source: target_id
+        -
+          plugin: migration_lookup
+          migration: dge_migrate_taxonomy_tags
+          no_stub: true
+          fail_on_missing: false
+          default_value: null
+          source: target_id
+  
+
+  field_image:
+    plugin: sub_process
+    source: field_image_d7
+    process:
+      target_id:
+        plugin: migration_lookup
+        migration: dge_migrate_file_managed
+        no_stub: true
+        source: image_fid
+      alt: alt
+      title: title
+      width: width
+      height: height
+  
+
+  field_nombre_y_apellidos: field_sender_name_d7
+  field_correo_electronico: field_sender_email_d7
+  field_telefono: field_sender_phone_d7
+  field_acepto_las_condiciones_del: field_sender_terms_of_use_d7
+
+
+  field_ficheros_adjuntos:
+    plugin: sub_process
+    source: field_ficheros_adjuntos_d7
+    process:
+      target_id:
+        plugin: migration_lookup
+        migration: dge_migrate_file_managed
+        no_stub: true
+        source: files_fid
+      display: display
+      description: description
+
+  field_ficheros_externos_adjuntos:  
+   -  
+     plugin: skip_on_empty  
+     method: process  
+     source: field_ext_files_d7
+   -  
+     plugin: migration_lookup  
+     migration: dge_migrate_field_collection_ext_files
+     no_stub: true  
+   -  
+     plugin: sub_process
+     process:  
+       target_id: '0'  
+       target_revision_id: '1'  
+
+  field_deseo_que_mi_nombre_y_orga: field_sender_show_data_d7
+  field_categoria:
+    plugin: sub_process
+    source: field_categoria_d7
+    process:
+      target_id:
+      - plugin: static_map
+        source: name
+        bypass: true
+        map:
+          'Legislación y Justicia': 'Legislación y justicia'
+          'Medio Ambiente': 'Medio ambiente'
+          'Medio rural': 'Medio Rural'
+      - plugin: entity_lookup
+        entity_type: taxonomy_term
+        bundle_key: vid
+        bundle: categorias
+        value_key: name
+
+
+  field_fuente: field_blog_source_d7
+
+  field_imagen:
+    plugin: sub_process
+    source: field_image_d7
+    process:
+      target_id:
+        plugin: migration_lookup
+        migration: dge_migrate_file_managed
+        no_stub: true
+        source: image_fid
+      alt: alt
+      title: title
+      width: width
+      height: height
+  field_url_catalogo: field_url_catalogo_d7
+
+
+  field_fecha:
+    plugin: format_date
+    from_format: 'Y-m-d\TH:i:s'
+    to_format: 'Y-m-d'
+    source: field_date_d7
+
+
+  body: field_body
+
+
+  field_fecha_de_la_noticia:
+    plugin: format_date
+    from_format: 'Y-m-d\TH:i:s'
+    to_format: 'Y-m-d'
+    source: field_blog_date_d7
+
+
+  field_fecha_del_post:
+    plugin: format_date
+    from_format: 'Y-m-d\TH:i:s'
+    to_format: 'Y-m-d'
+    source: field_blog_date_d7
+
+
+  field_detailed_question: field_detailed_question_d7
+  field_faq_category:
+    plugin: sub_process
+    source: field_faq_category_name_d7
+    process:
+      target_id:
+      - plugin: static_map
+        source: name
+        bypass: true
+        map:
+          'Generales': 'Generales'
+          'Catálogo de datos': 'Catálogo de datos'
+          'Catálogo de Aplicaciones': 'Catálogo de aplicaciones'
+          'Catálogo de Empresas': 'Catálogo de empresas'
+          'Disponibilidad de datos': 'Disponibilidad de datos'
+      - plugin: entity_lookup
+        entity_type: taxonomy_term
+        bundle_key: vid
+        bundle: faq_categories
+        value_key: name
+
+
+  field_fecha_del_documento:
+    plugin: format_date
+    from_format: 'Y-m-d\TH:i:s'
+    to_format: 'Y-m-d'
+    source: field_doc_date_d7
+  field_url_video_youtube: field_doc_youtube_d7
+  field_tipo:
+    plugin: sub_process
+    source: field_doc_tx_type_d7
+    process:
+      target_id:
+      - plugin: static_map
+        source: name
+        bypass: true
+        map:
+          'Ejercicios de ciencia de datos': 'Ejercicios de datos'
+          'Informes y estudios': 'Informes y estudios'
+          'Vídeos': 'Vídeos'
+          'Guías': 'Guías'
+          'Materiales formativos': 'Materiales formativos'
+          'Infografías': 'Infografías'
+          'Normativas y estrategias': 'Normativas y estrategias'
+      - plugin: entity_lookup
+        entity_type: taxonomy_term
+        bundle_key: vid
+        bundle: tipo_de_documentacion
+        value_key: name
+  field_audiencia:
+    plugin: sub_process
+    source: field_doc_tx_audience_d7
+    process:
+      target_id:
+        plugin: entity_lookup
+        entity_type: taxonomy_term
+        source: name
+        bundle_key: vid
+        bundle: audiencia
+        value_key: name
+  field_autoria:
+    plugin: sub_process
+    source: field_doc_tx_autor_d7
+    process:
+      target_id:
+        plugin: entity_lookup
+        entity_type: taxonomy_term
+        source: name
+        bundle_key: vid
+        bundle: autoria
+        value_key: name
+
+  field_bio_nombre: field_talk_bio_name_d7
+  field_bio_organismo_institucion: field_talk_bio_company_d7
+  field_bio_pais:
+    plugin: sub_process
+    source: field_talk_bio_country_d7
+    process:
+      target_id:
+        plugin: entity_lookup
+        entity_type: taxonomy_term
+        source: name
+        bundle_key: vid
+        bundle: paises
+        value_key: name
+  field_bio_sector:
+    plugin: sub_process
+    source: field_talk_bio_sector_d7
+    process:
+      target_id:
+      - plugin: static_map
+        source: name
+        bypass: true
+        map:
+          'Medio rural': 'Medio Rural'
+      - plugin: entity_lookup
+        entity_type: taxonomy_term
+        bundle_key: vid
+        bundle: categorias
+        value_key: name
+  field_bio_especializacion: field_talk_bio_spec_d7
+  field_bio_trabajos_a_destacar: field_talk_bio_works_d7
+  field_bio_contacto: field_bio_contacto_d7
+  field_bio_pagina_web: field_bio_pagina_web_d7
+
+  field_fecha_de_publicacion:
+    plugin: format_date
+    from_format: 'Y-m-d\TH:i:s'
+    to_format: 'Y-m-d'
+    source: field_app_publish_date_d7
+  field_fecha_de_actualizacion:
+    plugin: format_date
+    from_format: 'Y-m-d\TH:i:s'
+    to_format: 'Y-m-d'
+    source: field_app_update_date_d7
+  field_autor_desarrollador: field_app_developer_d7
+  field_plataforma:
+    plugin: sub_process
+    source: field_app_platform_d7
+    process:
+      target_id:
+        plugin: entity_lookup
+        entity_type: taxonomy_term
+        source: name
+        bundle_key: vid
+        bundle: plataformas
+        value_key: name
+  field_licencia: field_app_license_d7
+  field_url_aplicacion: field_url_aplicacion_d7
+  field_capturas_de_pantalla:
+    plugin: sub_process
+    source: field_capturas_de_pantalla_d7
+    process:
+      target_id:
+        plugin: migration_lookup
+        migration: dge_migrate_file_managed
+        no_stub: true
+        source: image_fid
+      alt: alt
+      title: title
+      width: width
+      height: height
+  field_empresa_organismo: field_sender_company_d7
+
+  field_year_create_reuse_co:
+    plugin: format_date
+    from_format: 'Y-m-d\TH:i:s'
+    to_format: 'Y-m-d'
+    source: field_success_launch_date_d7
+  field_pagina_web_de_la_empresa: field_pagina_web_de_la_empresa_d7
+  field_tamano_de_la_empresa:
+    plugin: sub_process
+    source: field_tamano_de_la_empresa_d7
+    process:
+      target_id:
+      - plugin: static_map
+        source: company_size
+        bypass: true
+        map:
+          '1': '1-10 empleados'
+          '11': '11-50 empleados'
+          '51': '51-250 empleados'
+          '250': 'Más de 250 empleados'
+      - plugin: entity_lookup
+        entity_type: taxonomy_term
+        bundle_key: vid
+        bundle: tamano_de_la_empresa
+        value_key: name
+  field_oficinas_en: field_offices_d7
+  field_sede_central: field_headquarters_d7
+  field_grado_de_internacionalizac: field_internationality_grade_d7
+  field_principales_productos_y_se: field_products_services_d7
+  field_clientes: field_clients_d7
+  field_datos_abiertos_utilizados: field_used_data_d7
+  field_modelo_de_comercializacion: field_marketing_model_d7
+  field_clave_del_exito: field_success_key_d7
+  field_crecimiento: field_success_increase_d7
+  field_planes_de_futuro: field_future_plans_d7
+  field_mas_informacion: field_more_information_d7
+
+  field_initiative_channel: initiative_channel_d7
+  field_initiative_catalog: initiative_catalog_d7
+  field_initiative_link: initiative_link_d7
+  field_enlace_al_cat_logo_de_dato: enlace_al_cat_logo_de_dato_d7
+  field_initiative_strategy: initiative_strategy_d7
+  field_initiative_resources: initiative_resources_d7
+  field_initiative_license:
+    plugin: callback
+    source: field_initiative_license_d7
+    callable: strip_tags
+  field_initiative_organization: field_initiative_organization_d7
+  field_initiative_collaborate: field_initiative_collaborate_d7
+  field_initiative_category:
+    plugin: sub_process
+    source: field_initiative_category_d7
+    process:
+      target_id:
+      - plugin: static_map
+        source: name
+        bypass: true
+        map:
+          'Cultura y Ocio': 'Cultura y ocio'
+          'Legislación y Justicia': 'Legislación y justicia'
+          'Medio Ambiente': 'Medio ambiente'
+          'Sector Público': 'Sector público'
+          'Sociedad y Bienestar': 'Sociedad y bienestar'
+          'Urbanismo e Infraestructuras': 'Urbanismo e infraestructuras'
+      - plugin: entity_lookup
+        entity_type: taxonomy_term
+        bundle_key: vid
+        bundle: categorias
+        value_key: name
+  field_initiative_admin_level:
+    plugin: sub_process
+    source: field_initiative_admin_level_d7
+    process:
+      target_id:
+        plugin: entity_lookup
+        entity_type: taxonomy_term
+        source: name
+        bundle_key: vid
+        bundle: administrative_level
+        value_key: name
+  field_geoposition: field_geoposition_d7
+
+  field_photo:
+    plugin: sub_process
+    source: field_photo_d7
+    process:
+      target_id:
+        plugin: migration_lookup
+        migration: dge_migrate_file_managed
+        no_stub: true
+        source: image_fid
+      alt: alt
+      title: title
+      width: width
+      height: height
+  field_position: field_position_d7
+  field_departament: field_departament_d7
+  field_twitter: twitter_d7
+  field_linkedin: linkedin_d7
+
+  
+migration_dependencies:
+  required:
+    - dge_migrate_file_managed
+    - dge_migrate_field_collection_ext_files
+    - dge_migrate_users_roles
+  optional: {  }

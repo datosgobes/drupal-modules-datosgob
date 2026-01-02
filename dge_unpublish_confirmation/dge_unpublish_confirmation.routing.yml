@@ -1,0 +1,7 @@
+dge_unpublish_confirmation.confirmation:
+  path: '/node/{node}/unpublish_confirmation'
+  requirements:
+    _permission: 'access content'
+    role: '[1-8]'
+
+

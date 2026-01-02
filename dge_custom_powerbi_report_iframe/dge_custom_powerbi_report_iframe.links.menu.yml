@@ -1,0 +1,5 @@
+dge_custom_powerbi_report_iframe.config_form:
+  title: DGE Custom PowerBi Report
+  parent: dge_basic_settings.admin
+  description: "DGE Custom PowerBi Report configuration'."
+  route_name: dge_custom_powerbi_report_iframe.config_form

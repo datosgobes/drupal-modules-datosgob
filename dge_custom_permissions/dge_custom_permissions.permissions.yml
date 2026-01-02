@@ -1,0 +1,19 @@
+show revisions information:
+  title: 'Show Revisions Information'
+  description: 'Allow users to see the revisions information in content forms.'
+
+show moderation state field:
+  title: 'Show Moderation State Field'
+  description: 'Allow users to see the moderation state dropdown field in content forms.'
+
+show tags field:
+  title: 'Show Tags Field'
+  description: 'Allow users to see the tags field in content forms.'
+
+show data request admin fields:
+  title: 'show data request admin fields'
+  description: 'Allow users to see the following fields in data request forms: Answer, Publisher, Data set URL, Suscription request, Number of subscribers and 	Body responsible'
+
+show initiative field:
+  title: 'Show Initiative admin field'
+  description: 'Allow users to see the initiative fields in content forms.'

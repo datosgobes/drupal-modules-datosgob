@@ -1,0 +1,7 @@
+name: DGE Basic settings
+description: "Customized basic settings page"
+type: module
+core_version_requirement: ^10
+package: "DGE"
+dependencies:
+  - dge_user:dge_user

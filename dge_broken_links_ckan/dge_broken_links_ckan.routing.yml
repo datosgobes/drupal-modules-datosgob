@@ -1,0 +1,9 @@
+dge_broken_links_ckan.broken_links_views:
+  path: "/drupal/report/broken-links"
+  defaults:
+    _title: "DGE Broken Links CKAN views"
+    _controller: '\Drupal\dge_broken_links_ckan\Controller\BrokenLinksController::dge_broken_links_ckan_views'
+  requirements:
+    _permission: "access broken links views"
+  options:
+    no_cache: TRUE

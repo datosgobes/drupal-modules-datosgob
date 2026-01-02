@@ -1,0 +1,8 @@
+name: DGE Access
+type: module
+description: 'Control access functions'
+core_version_requirement: ^10
+package: 'DGE'
+dependencies:
+  - dge_user
+configure: dge_access.config_form

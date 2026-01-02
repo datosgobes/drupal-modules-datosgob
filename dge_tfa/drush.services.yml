@@ -1,0 +1,5 @@
+services:
+  dge_tfa.commands:
+    class: Drupal\dge_tfa\Command\DgeTfaCommands
+    tags:
+      - { name: 'drush.command' }

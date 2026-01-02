@@ -1,0 +1,4 @@
+dge_sendinblue.config:
+  route_name: dge_sendinblue.config_form
+  title: Settings
+  base_route: dge_sendinblue.config_form

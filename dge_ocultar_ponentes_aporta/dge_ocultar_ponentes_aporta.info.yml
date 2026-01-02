@@ -1,0 +1,5 @@
+name: DGE Ocultar Ponentes Aporta
+type: module
+description: 'Módulo que oculta el acceso por url al tipo de contenido Ponentes Aporta.'
+core_version_requirement: ^10
+package: 'DGE'

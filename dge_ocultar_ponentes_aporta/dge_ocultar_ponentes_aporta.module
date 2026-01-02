@@ -1,0 +1,40 @@
+<?php
+/**
+  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_ocultar_ponentes_aporta (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use Drupal\node\NodeInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Access\AccessResult;
+
+
+function dge_ocultar_ponentes_aporta_node_access(NodeInterface $node, $op, AccountInterface $account) {
+ 
+  if ($node->bundle() === 'ponentes_aporta' && $op === 'view') {
+    
+    $current_path = \Drupal::service('path.current')->getPath();
+    $alias_manager = \Drupal::service('path_alias.manager');
+    $internal_path = $alias_manager->getPathByAlias($current_path);
+
+    if ($internal_path === '/node/' . $node->id()) {
+      return AccessResult::forbidden();
+    }
+  }
+
+  return AccessResult::neutral();
+}
