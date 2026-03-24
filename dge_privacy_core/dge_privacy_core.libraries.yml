@@ -1,0 +1,7 @@
+dge_privacy_core:
+  js:
+    js/dge_privacy_core.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+    - core/drupalSettings

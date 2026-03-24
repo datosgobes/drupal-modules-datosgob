@@ -1,0 +1,9 @@
+name: 'DGE Privacy Power BI' 
+description: 'Bloquea Power BI embebidos hasta consentimiento.' 
+type: module 
+core_version_requirement: ^10
+package: "DGE"
+dependencies:
+  - drupal:cookies
+  - drupal:paragraphs
+  - dge_privacy_core:dge_privacy_core

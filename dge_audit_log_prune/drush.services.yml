@@ -1,0 +1,6 @@
+services:
+  dge_audit_log_prune.commands:
+    class: Drupal\dge_audit_log_prune\Command\AuditLogPruneCommands
+    arguments: ['@database', '@datetime.time', '@logger.factory']
+    tags:
+      - { name: 'drush.command' }

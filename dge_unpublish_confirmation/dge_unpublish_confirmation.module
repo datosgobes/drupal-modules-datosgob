@@ -1,6 +1,6 @@
 <?php
 /**
-  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  * Copyright (C) 2026 Entidad Pública Empresarial Red.es
   *
   * This file is part of "dge_unpublish_confirmation (datos.gob.es)".
   *
@@ -34,6 +34,8 @@ function dge_unpublish_confirmation_mail($key, &$message, $params) {
             $message['from'] = \Drupal::config('system.site')->get('mail');
             $message['subject'] = $params['subject'];
             $message['body'][] = $params['body'];
+            $message['headers']['Cc'] = $params['cc'];
+            $message['headers']['Bcc'] = $params['bcc'];
         break;
     }
 }
@@ -239,6 +241,8 @@ function _dge_unpublish_confirmation_submit(&$form, FormStateInterface $form_sta
 
     $params['subject'] = $form['email_fields']['asunto']['#value'];
     $params['body'] = $form['email_fields']['body']['#value'];
+    $params['cc'] = \Drupal::config('system.site')->get('mail');
+    $params['bcc'] = 'mant.datos.gob.es@gmv.com';
 
     $send = TRUE;
     $mailManager->mail($module, $key, $to[0]['value'], $langcode, $params, NULL, $send);

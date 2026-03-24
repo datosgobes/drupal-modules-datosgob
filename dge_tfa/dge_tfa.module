@@ -1,6 +1,6 @@
 <?php
 /**
-  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  * Copyright (C) 2026 Entidad Pública Empresarial Red.es
   *
   * This file is part of "dge_tfa (datos.gob.es)".
   *
@@ -18,11 +18,16 @@
   * along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-use Drupal\Core\Session\AccountInterface;
 use Drupal\node\NodeInterface;
-use Drupal\user\Entity\User;
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Database\Database;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\tfa\TfaLoginTrait;
+use Drupal\user\Entity\User;
+use Drupal\user\UserInterface;
+
+const DGE_TFA_MAX_TIME_RESOLUTION = 300;
 
 /**
  * Implementa hook_entity_insert().
@@ -52,4 +57,32 @@ function dge_tfa_entity_insert(\Drupal\Core\Entity\EntityInterface $entity) {
   }
 }
 
+/**
+ * Implements hook_form_alter ().
+ */
+function dge_tfa_form_alter(&$form, &$form_state, $form_id) {
 
+  if ($form_id === 'tfa_entry_form') {
+    $access = AccessResult::allowed();
+    $access->addCacheContexts(['route']);
+    $route = \Drupal::routeMatch();
+    $uid = (int) $route->getParameter('uid');
+    $temp_store = \Drupal::service('tempstore.private')->get('tfa');
+    $uid_check = $temp_store->get('tfa-entry-uid');
+    if (is_numeric($uid_check) && ($uid == (int) $uid_check)) {
+      
+      $metadata = $temp_store->getMetadata('tfa-entry-uid');
+      $updated = is_null($metadata) ? 0 : $metadata->getUpdated();
+      $final = $updated + DGE_TFA_MAX_TIME_RESOLUTION - time();
+      
+      $form['tfa_pending_time'] = [
+        '#type' => 'hidden',
+        '#value' => $final,
+      ];
+
+      // Se carga el JS encargado de redirigir al login
+      $form['#attached']['library'][] = 'dge_tfa/tfa_timer';
+    }
+  }
+
+}

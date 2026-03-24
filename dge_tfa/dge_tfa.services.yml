@@ -1,0 +1,5 @@
+services:
+  dge_tfa.access_denied_subscriber:
+    class: Drupal\dge_tfa\EventSubscriber\TfaAccessDeniedSubscriber
+    tags:
+      - { name: event_subscriber }
