@@ -1,0 +1,7 @@
+tfa_timer:
+  js:
+    js/tfa_timer.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once

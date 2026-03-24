@@ -1,6 +1,6 @@
 <?php
 /**
-  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  * Copyright (C) 2026 Entidad Pública Empresarial Red.es
   *
   * This file is part of "dge_widget (datos.gob.es)".
   *
@@ -26,6 +26,11 @@ use Drupal\taxonomy\Entity\Vocabulary;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+use Drupal\Core\Routing\RouteMatchInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Drupal\Core\Render\HtmlResponse;
+
 use Drupal\dge_ckan\dge_ckan_json_label;
 
 class DgeWidgetController extends ControllerBase {
@@ -46,9 +51,8 @@ class DgeWidgetController extends ControllerBase {
       '#nti_dge_dataset_label' => $nti_dge_dataset_label,
       '#frequency_label' => $frequency_label,
     ];
-    $output = \Drupal::service('renderer')->renderRoot($build);
+      return new HtmlResponse(\Drupal::service('renderer')->render($build));
 
-    return new Response($output);
   }
   
   public function alphaCallback($parameter) {
@@ -66,9 +70,8 @@ class DgeWidgetController extends ControllerBase {
       '#nti_dge_dataset_label' => $nti_dge_dataset_label,
       '#frequency_label' => $frequency_label,
     ];
-    $output = \Drupal::service('renderer')->renderRoot($build);
+      return new HtmlResponse(\Drupal::service('renderer')->render($build));
 
-    return new Response($output);
   }
   
   public function callback($parameter) {
@@ -86,9 +89,8 @@ class DgeWidgetController extends ControllerBase {
       '#nti_dge_dataset_label' => $nti_dge_dataset_label,
       '#frequency_label' => $frequency_label,
     ];
-    $output = \Drupal::service('renderer')->renderRoot($build);
-    
-    return new Response($output);
+      return new HtmlResponse(\Drupal::service('renderer')->render($build));
+
   }
   
   private function dgeWidgetCkanRequest($organization, $sort, $start, $rows) {

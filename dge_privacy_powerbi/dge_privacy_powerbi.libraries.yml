@@ -1,0 +1,10 @@
+powerbi_consent:
+  js:
+    js/powerbi_consent.js: {}
+  css:
+    component:
+      css/powerbi_consent.css: {}
+  dependencies:
+    - core/drupal
+    - core/once
+    - core/drupalSettings

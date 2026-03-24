@@ -1,0 +1,5 @@
+name: DGE Custom CKEditor defaults
+type: module
+description: "Custom module for handling table options for CKEditor."
+package: "DGE"
+core_version_requirement: ^10

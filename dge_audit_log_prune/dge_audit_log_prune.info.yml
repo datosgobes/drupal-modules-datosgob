@@ -1,0 +1,8 @@
+name: 'DGE Audit Log Prune'
+description: 'Elimina automáticamente registros de auditoría antiguos de las tablas entity_changelog y config_log según el número de días definido en settings.php (por defecto 90 días).'
+type: module
+core_version_requirement: ^9 || ^10 || ^11
+package: 'DGE'
+dependencies:
+  - entity_changelog:entity_changelog
+  - config_log:config_log

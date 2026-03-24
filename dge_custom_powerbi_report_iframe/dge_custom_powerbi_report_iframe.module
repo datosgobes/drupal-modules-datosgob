@@ -1,6 +1,6 @@
 <?php
 /**
-  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  * Copyright (C) 2026 Entidad Pública Empresarial Red.es
   *
   * This file is part of "dge_custom_powerbi_report_iframe (datos.gob.es)".
   *

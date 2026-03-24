@@ -1,6 +1,6 @@
 <?php
 /**
-  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  * Copyright (C) 2026 Entidad Pública Empresarial Red.es
   *
   * This file is part of "dge_access (datos.gob.es)".
   *
@@ -92,10 +92,13 @@ class DgeAccessViewsData extends FilterPluginBase {
         }
   
         if (!empty($conditions)) {
-          $this->query->addWhereExpression('AND', implode(' OR ', $conditions), $parameters);
+          $this->query->addWhereExpression('AND', '(' . implode(' OR ', $conditions) . ')', $parameters);
         }
         
         $this->query->addWhereExpression('AND', "$table.grant_$access >= :grant", [':grant' => 1]);
+
+        $this->query->distinct = TRUE;
+
       }
     }
   }

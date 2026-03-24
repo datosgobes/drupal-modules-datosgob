@@ -1,0 +1,10 @@
+video_consent_oembed:
+  js:
+    js/video_consent_oembed.js: {}
+  css:
+    component:
+      css/video_consent.css: {}
+  dependencies:
+    - core/drupal
+    - core/once
+    - core/drupalSettings

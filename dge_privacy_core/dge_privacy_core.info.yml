@@ -1,0 +1,7 @@
+name: 'DGE Privacy Core'
+type: module
+description: 'Provides core consent management polling and event dispatching for privacy-blocked content.'
+package: DGE
+core_version_requirement: ^10
+dependencies:
+  - drupal:cookies

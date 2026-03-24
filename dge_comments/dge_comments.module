@@ -1,6 +1,8 @@
 <?php
+
+
 /**
-  * Copyright (C) 2025 Entidad Pública Empresarial Red.es
+  * Copyright (C) 2026 Entidad Pública Empresarial Red.es
   *
   * This file is part of "dge_comments (datos.gob.es)".
   *
@@ -19,6 +21,11 @@
 */
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\Entity\Node;
+use Drupal\comment\Entity\Comment;
+use Drupal\Core\Render\BubbleableMetadata;
+use Drupal\Core\Routing\TrustedRedirectResponse;
+use Symfony\Component\HttpKernel\Event\ResponseEvent;
 
 
 function dge_comments_form_comment_form_alter(&$form, &$form_state, $form_id) {
@@ -52,10 +59,22 @@ function dge_comments_form_comment_form_alter(&$form, &$form_state, $form_id) {
  * Implements hook_form_alter().
  */
 function dge_comments_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
-  if (in_array($form_id, ['node_entrevista_form', 'node_entrevista_edit_form', 'node_peticion_de_datos_form', 'node_peticion_de_datos_edit_form'])) {
-    if (isset($form['comment'])) {
-      unset($form['comment']);
-    }
+
+  if (isset($form['#id']) && str_starts_with($form['#id'], 'comment-form')) {
+    $form['actions']['submit']['#submit'][] = '_comments_drupal_comment_form_submit';
+  }
+
+}
+
+/**
+ * Comment form builder to alter redirect.
+ */
+function _comments_drupal_comment_form_submit($form, FormStateInterface $form_state) {
+
+  if ( \Drupal::request()->isXmlHttpRequest() == FALSE) {
+    $uri = $form_state->getRedirect();
+    $uri->setOption('query', []);
+    $form_state->setRedirectUrl($uri);
   }
 }
 
@@ -185,4 +204,31 @@ function dge_comments_views_data_alter(array &$data) {
     ],
   ];
 }
+
+/**
+ * Implementa hook_preprocess_HOOK().
+ */
+function dge_comments_preprocess_field(array &$variables) {
+  if (
+    $variables['element']['#field_type'] !== 'comment' ||
+    empty($variables['element']['#items']) ||
+    empty($variables['element']['#object']) ||
+    $variables['element']['#view_mode'] !== 'full'
+  ) {
+    return;
+  }
+
+  $entity = $variables['element']['#object'];
+  $field_name = $variables['element']['#field_name'];
+  $comments_data = \Drupal\dge_comments\CommentHelper::loadPaginatedParentComments($entity, $field_name);
+
+  if (!empty($comments_data['rendered'])) {
+    $variables['comments'] = $comments_data['rendered'];
+    $variables['comments']['#sorted'] = TRUE; // importante para el renderizado
+    $variables['comments']['pager'] = $comments_data['pager'];
+  } else {
+    $variables['comments'] = [];
+  }
+}
+
 

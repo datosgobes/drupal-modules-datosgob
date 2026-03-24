@@ -1,0 +1,8 @@
+name: 'DGE Privacy Video' 
+description: 'Bloquea Media oEmbed hasta consentimiento y aplica YouTube-nocookie/Vimeo dnt.' 
+type: module 
+core_version_requirement: ^10
+package: "DGE"
+dependencies:
+  - drupal:cookies
+  - dge_privacy_core:dge_privacy_core

@@ -1,0 +1,177 @@
+<?php
+
+/**
+  * Copyright (C) 2026 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_privacy_powerbi (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/**
+ * @file
+ * Handles blocking Power BI iframes based on cookie consent.
+ * Targets Power BI iframes within paragraph fields using #post_render.
+ * DIAGNOSTIC VERSION WITH DATABASE LOGGING.
+ */
+
+use Drupal\Core\Security\TrustedCallbackInterface;
+use Drupal\Core\Entity\EntityInterface;
+
+/**
+ * Implements hook_page_attachments().
+ *
+ * Attaches the JS library and passes translatable strings AND the correct
+ * cookie service machine name.
+ */
+function dge_privacy_powerbi_page_attachments(array &$attachments)
+{
+  $attachments['#attached']['library'][] = 'dge_privacy_powerbi/powerbi_consent';
+  $attachments['#attached']['drupalSettings']['dge_privacy_powerbi'] = [
+    'cookie_category' => 'powerbi_embed', // Machine name of your COOKiES service.
+    'aria_label' => t('Power BI report blocked due to cookie preferences'),
+    'message' => t('To view this interactive report, please accept cookies in the <strong>Optionals</strong> category.'),
+    'button_text' => t('Configure Cookies'),
+  ];
+}
+
+/**
+ * Implements hook_entity_view_alter().
+ *
+ * Attaches a #post_render callback to paragraph fields ('entity_reference_revisions').
+ */
+function dge_privacy_powerbi_entity_view_alter(array &$build, EntityInterface $entity, $display)
+{
+  $logger = \Drupal::logger('dge_privacy_powerbi');
+  $paragraph_field_type = 'entity_reference_revisions';
+
+  // Loop through the build structure for the entity.
+  foreach ($build as $field_name => &$field_build) {
+    // Ensure we are dealing with a renderable array representing a field.
+    if (!is_array($field_build) || !isset($field_build['#theme']) || $field_build['#theme'] !== 'field') {
+      continue;
+    }
+
+    // Get field definition safely.
+    try {
+      $field_definition = $entity->getFieldDefinition($field_name);
+    } catch (\InvalidArgumentException $e) {
+      // Field might not exist directly on the entity (e.g., extra fields).
+      continue;
+    }
+
+    // Check if the field is of the paragraph type.
+    if ($field_definition && $field_definition->getType() === $paragraph_field_type) {
+      $logger->debug('Attaching #post_render to paragraph field: @field_name on entity @entity_type:@entity_id', [
+        '@field_name' => $field_name,
+        '@entity_type' => $entity->getEntityTypeId(),
+        '@entity_id' => $entity->id(),
+      ]);
+      // Ensure #post_render is an array before adding to it.
+      if (!isset($field_build['#post_render']) || !is_array($field_build['#post_render'])) {
+        $field_build['#post_render'] = [];
+      }
+      // Add the callback only once per field build instance to avoid potential duplicates.
+      if (!in_array([DgePrivacyPowerBiProcessor::class, 'processFieldOutput'], $field_build['#post_render'])) {
+        $field_build['#post_render'][] = [DgePrivacyPowerBiProcessor::class, 'processFieldOutput'];
+      }
+    }
+
+    
+  }
+ //  aplicar el post_render a párrafos tipo iframe.
+  if ($entity->getEntityTypeId() === 'paragraph' && $entity->bundle() === 'iframe') {
+    $logger->debug('Attaching #post_render directly to iframe paragraph @id', ['@id' => $entity->id()]);
+    if (!isset($build['#post_render']) || !is_array($build['#post_render'])) {
+      $build['#post_render'] = [];
+    }
+    if (!in_array([DgePrivacyPowerBiProcessor::class, 'processFieldOutput'], $build['#post_render'])) {
+      $build['#post_render'][] = [DgePrivacyPowerBiProcessor::class, 'processFieldOutput'];
+    }
+  }
+}
+
+/**
+ * Defines a trusted callback for modifying rendered field output containing iframes.
+ */
+class DgePrivacyPowerBiProcessor implements TrustedCallbackInterface
+{
+  /**
+   * {@inheritdoc}
+   */
+  public static function trustedCallbacks()
+  {
+    return ['processFieldOutput'];
+  }
+
+  /**
+   * #post_render callback to find and modify Power BI iframes within final HTML.
+   */
+  public static function processFieldOutput($content, array $element)
+  {
+    $logger = \Drupal::logger('dge_privacy_powerbi');
+    $field_name = $element['#field_name'] ?? 'unknown';
+
+    // Pattern to find all iframes. Use [\s\S]*? for non-greedy matching across lines.
+    $pattern = '/<iframe([\s\S]*?)>/i';
+    $powerbi_domain = 'app.powerbi.com';
+    $iframe_modified = false; // Flag to check if any modification happened.
+
+    $new_content = preg_replace_callback($pattern, function ($matches) use ($logger, $field_name, $powerbi_domain, &$iframe_modified) {
+      $iframe_attributes_string = trim($matches[1]); // Trim leading/trailing whitespace
+      $full_iframe_tag_original = '<iframe' . $matches[1] . '></iframe>'; // For returning if no match
+
+      if (stripos($iframe_attributes_string, 'data-src=') !== false) {
+        return $full_iframe_tag_original; // Return unmodified if already processed.
+      }
+
+      // Check if the src attribute exists and contains the Power BI domain.
+      if (preg_match('/src=(["\'])(.*?)\1/i', $iframe_attributes_string, $src_matches)) {
+        $original_src = $src_matches[2];
+
+        if (strpos($original_src, $powerbi_domain) !== false) {
+          $iframe_modified = true;
+          $logger->info('Found Power BI iframe in field @field_name. Modifying src to data-src and adding class.', ['@field_name' => $field_name]);
+
+          // Use preg_replace for a safer replacement of the first 'src='
+          // Ensure case-insensitivity and handle potential surrounding spaces.
+          // Limit replacement to 1 to avoid replacing src within data attributes.
+          $new_attributes = preg_replace('/(\s|^)src=/i', '$1data-src=', $iframe_attributes_string, 1);
+
+          // Add a specific class for the JS to find.
+          if (preg_match('/class=(["\'])(.*?)\1/i', $new_attributes, $class_matches)) {
+            // Append class if class attribute exists
+            $existing_classes = $class_matches[2];
+            // Avoid adding duplicate class
+            if (strpos($existing_classes, 'dge-privacy-powerbi-iframe') === false) {
+              $new_class_attr = 'class="' . $existing_classes . ' dge-privacy-powerbi-iframe' . '"';
+              $new_attributes = preg_replace('/class=(["\'])(.*?)\1/i', $new_class_attr, $new_attributes, 1);
+            }
+          } else {
+            // Add class attribute if it doesn't exist
+            $new_attributes = ' class="dge-privacy-powerbi-iframe" ' . $new_attributes;
+          }
+
+          // Reconstruct the iframe tag
+          return '<iframe ' . trim($new_attributes) . '></iframe>';
+        }
+      }
+
+      // If it's not a Power BI iframe with a src, return it unchanged.
+      return $full_iframe_tag_original;
+    }, $content);
+
+    return $new_content;
+  }
+}
