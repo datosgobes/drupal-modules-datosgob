@@ -1,0 +1,174 @@
+<?php
+
+/**
+  * Copyright (C) 2026 Entidad Pública Empresarial Red.es
+  *
+  * This file is part of "dge_custom_scheduler (datos.gob.es)".
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\NodeForm;
+use Drupal\node\NodeInterface;
+
+const PROGRAMADO ="programado" ;
+
+const CONTENT_WITH_SCHEDULE = [
+    'desafio_aporta',
+    'documentacion',
+    'empresa_reutilizadora',
+    'entrevista',
+    'evento',
+    'faq',
+    'noticia',
+    'page',
+    'blog',
+    'sectores'
+  ];
+
+
+/**
+ * Implements hook_form_alter().
+ */
+function dge_custom_scheduler_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+
+  if ($form_state->getFormObject() instanceof NodeForm) {
+
+    $node = $form_state->getFormObject()->getEntity();
+
+    if (in_array($node->bundle(), CONTENT_WITH_SCHEDULE) && $node->hasField('publish_on') && isset($form['publish_on'])) {
+
+      $current_state = $node->get('moderation_state')->value ?? NULL;
+
+      if ($current_state !== PROGRAMADO) {
+        $form['publish_on']['#access'] = FALSE;
+      }
+
+      if (isset($form['moderation_state'])) {
+        $form['publish_on']['#states'] = [
+          'visible' => [
+            ':input[name="moderation_state[0][state]"]' => ['value' => PROGRAMADO],
+          ],
+        ];
+      }
+
+      $form['#validate'][] = 'dge_custom_scheduler_validate';
+    }
+  }
+}
+
+
+function dge_custom_scheduler_validate($form, FormStateInterface $form_state) {
+  $form_object = $form_state->getFormObject();
+  $entity = $form_object->getEntity();
+  $state = $form_state->getValue(['moderation_state', 0, 'value']);
+  $publish_on = $form_state->getValue(['publish_on', 0, 'value']);
+
+  if ($state === PROGRAMADO && empty($publish_on)) {
+    $form_state->setErrorByName('publish_on', t('Debes indicar una fecha de publicación cuando el estado es Programado.'));
+  }
+
+  if ($state !== PROGRAMADO) {
+    $form_state->setValue('publish_on', []);
+  }
+
+}
+
+/**
+ * Implements hook_node_update().
+ */
+function dge_custom_scheduler_node_update(\Drupal\node\NodeInterface $node) {
+  
+  static $is_syncing = FALSE;
+  if ($is_syncing) {
+    return;
+  }
+
+  if ( ( !in_array($node->bundle(), CONTENT_WITH_SCHEDULE)) || $node->get('moderation_state')->value !== PROGRAMADO) {
+    return;
+  }
+
+  $new_state = $node->get('moderation_state')->value;
+  $current_langcode = $node->language()->getId();
+  $original_langcode = $node->getUntranslated()->language()->getId();
+
+  if (( in_array($node->bundle(), CONTENT_WITH_SCHEDULE))  && ($current_langcode !== $original_langcode) && $new_state === PROGRAMADO ) {
+    return;
+  }
+
+  
+  $is_syncing = TRUE;
+  $nid = $node->id();
+  $new_publish_on = $node->hasField('publish_on') ? $node->get('publish_on')->value : NULL;
+  $node_storage = \Drupal::entityTypeManager()->getStorage('node');
+  
+  $latest_vid = $node_storage->getLatestRevisionId($nid);
+  $latest_revision = $node_storage->loadRevision($latest_vid);
+
+  if ($latest_revision) {
+    $languages = $latest_revision->getTranslationLanguages();
+    $needs_save = FALSE;
+
+    foreach ($languages as $langcode => $language) {
+      $translation = $latest_revision->getTranslation($langcode);
+      
+      if ($translation->get('moderation_state')->value !== PROGRAMADO || 
+          $translation->get('publish_on')->value != $new_publish_on) {
+        
+        $translation->set('moderation_state', PROGRAMADO);
+        $translation->set('publish_on', $new_publish_on);
+        $translation->setRevisionTranslationAffected(TRUE);
+        $needs_save = TRUE;
+      }
+    }
+
+    if ($needs_save) {
+      $latest_revision->setNewRevision(TRUE);
+      $latest_revision->setRevisionLogMessage('Sincronización global de programación para todos los idiomas.');
+      $latest_revision->setRevisionCreationTime(\Drupal::time()->getRequestTime());
+      $latest_revision->save();
+    }
+  }
+
+  $is_syncing = FALSE;
+}
+
+
+/**
+ * Implements hook_scheduler_publish_action().
+ */
+function dge_custom_scheduler_scheduler_publish_action($node) {
+  if (!in_array($node->bundle(), CONTENT_WITH_SCHEDULE)) {
+    return;
+  }
+  $now = \Drupal::time()->getRequestTime();
+  foreach ($node->getTranslationLanguages() as $langcode => $language) {
+    $translation = $node->getTranslation($langcode);
+    if ( $langcode == "es" && $translation->get('moderation_state')->value == PROGRAMADO) {
+      $translation->set('moderation_state', 'published');
+      $translation->setRevisionTranslationAffected(TRUE);
+    } else {
+      if (empty($translation->get('publish_on')->value)) {
+        continue;
+      }
+      if ((int) $translation->get('publish_on')->value <= $now) {
+        if ($translation->get('moderation_state')->value !== 'published') {
+          $translation->set('moderation_state', 'published');
+          $translation->setRevisionTranslationAffected(TRUE);
+        }
+      }
+    }
+  }
+}

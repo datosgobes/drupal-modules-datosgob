@@ -1,0 +1,8 @@
+name: "DGE custom Scheduler" 
+type: module
+description: Control de Estado Programdo, visibilidad y validación de Scheduler con moderation.
+core_version_requirement: ^10
+package: "DGE"
+dependencies:
+  - scheduler:scheduler
+  - content_moderation:content_moderation
