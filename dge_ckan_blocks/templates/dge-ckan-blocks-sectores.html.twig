@@ -200,24 +200,25 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   elements.items.forEach((item) => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-
+    const isDesktop = () => window.innerWidth > 768;
+    const getData = () => JSON.parse(item.dataset.sector);
+    const updatePanel = () => {
+      // Remove 'selected' class from all items
       elements.items.forEach((el) => {
         el.classList.remove('selected');
         el.setAttribute('aria-selected', 'false');
       });
-
+      // Add 'selected' class to clicked item
       item.classList.add('selected');
       item.setAttribute('aria-selected', 'true');
-
-      const data = JSON.parse(item.dataset.sector);
+      const data = getData();
+      // Update info panel with item data
       elements.infoPanel.style.backgroundImage = data.imagen ? `url('${data.imagen}')` : '';
       elements.infoTitle.textContent = data.title || '';
       elements.infoColor.style.backgroundColor = data.color || '#ccc';
       elements.infoInitiatives.textContent = data.num_initiatives || 0;
-     
-      const rawNum = data.num_packages.toString(); 
+
+      const rawNum = data.num_packages.toString();
       elements.infoPackages.textContent = ensureThreeDecimals(rawNum);
       elements.infoCompanies.textContent = data.num_empresas || 0;
       elements.infoApplications.textContent = data.num_aplicaciones || 0;
@@ -227,9 +228,23 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             elements.infoLink.parentElement.parentElement.style.display = 'none'; 
         }
-
-      elements.defaultMessage.style.display = 'none';
-      elements.sectorDetails.style.display = 'flex';
+        elements.defaultMessage.style.display = 'none';
+        elements.sectorDetails.style.display = 'flex';
+    };
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const data = getData();
+      if(isDesktop()) {
+        if(data.link) {
+          window.location.href = data.link;
+        }
+      }else{
+        updatePanel();
+      }
+    });
+    item.addEventListener('mouseenter', () => {
+      if (!isDesktop()) return;
+      updatePanel();
     });
   });
 });

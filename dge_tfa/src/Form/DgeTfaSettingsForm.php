@@ -78,6 +78,12 @@ class DgeTfaSettingsForm extends ConfigFormBase {
       '#default_value' => $dge_tfa_step2['value'] ?? '',
       '#format' => $dge_tfa_step2['format'] ?? 'basic_html',
     ];
+    $form['dge-tfa-back-link'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Back to Step 1 text'),
+      '#description' => $this->t('Text for the link to return to step 1. Use @link to represent the clickable link.'),
+      '#default_value' => $config->get('dge-tfa-back-link') ?? $this->t('Back to step 1? @link'),
+    ];
 
     return parent::buildForm($form, $form_state);
   }
@@ -101,6 +107,10 @@ class DgeTfaSettingsForm extends ConfigFormBase {
     $this->config('dge_tfa.settings')
       ->set('dge-tfa-step2', $form_state->getValue('dge-tfa-step2'))
       ->save();
+    
+    $this->config('dge_tfa.settings')
+     ->set('dge-tfa-back-link', $form_state->getValue('dge-tfa-back-link'))
+    ->save();
 
     parent::submitForm($form, $form_state);
   }

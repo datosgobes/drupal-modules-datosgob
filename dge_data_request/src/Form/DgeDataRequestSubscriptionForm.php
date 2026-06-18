@@ -69,8 +69,11 @@ class DgeDataRequestSubscriptionForm extends FormBase {
         '#description' => $this->t('Enter first and last name.'),
         '#prefix' => '<div class="col-3">',
         '#suffix' => '</div>',
+        '#attributes' => [
+          'autocomplete' => 'name',
+        ],
     ];
-
+  
     $form['container']['field_sender_email'] = [
         '#type' => 'email',
         '#title' => $this->t('Email'),
@@ -78,6 +81,10 @@ class DgeDataRequestSubscriptionForm extends FormBase {
         '#description' => $this->t('Enter your email address. Ex: abc@xyz.com'),
         '#prefix' => '<div class="col-3">',
         '#suffix' => '</div>',
+        '#attributes' => [
+        'autocomplete' => 'email',
+        'inputmode' => 'email',
+      ],
     ];
 
     $form['container']['field_sender_company'] = [
@@ -86,6 +93,9 @@ class DgeDataRequestSubscriptionForm extends FormBase {
         '#required' => TRUE,
         '#prefix' => '<div class="col-3">',
         '#suffix' => '</div>',
+        '#attributes' => [
+        'autocomplete' => 'organization',
+      ],
     ];
 
     $form['container']['field_sender_desire'] = [
@@ -104,12 +114,12 @@ class DgeDataRequestSubscriptionForm extends FormBase {
         <a href='https://www.red.es/es/proteccion-de-datos' target='_blank'>Personal data protection</a>"),
         '#required' => TRUE,
         '#attributes' => [
-            'title' => $this->t("Select this checkbox if you want to continue"), 
-            'aria-describedby' => 'edit-field-sender-consent-tooltip', 
+            'title' => $this->t("Select this checkbox if you want to continue"), // Tooltip visual
+            'aria-describedby' => 'edit-field-sender-consent-tooltip', // Tooltip accesible
         ],
         '#description' => [
             '#markup' => '<span id="edit-field-sender-consent-tooltip" class="visually-hidden">
-          This field is required, and you must consent to the privacy policy to continue.</span>', 
+          This field is required, and you must consent to the privacy policy to continue.</span>', // Accesibilidad - Aplicación lectura.
         ],
     ];
 
