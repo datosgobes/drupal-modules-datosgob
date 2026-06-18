@@ -35,70 +35,59 @@ class CommentHelper {
   public static function loadPaginatedParentComments(EntityInterface $entity, $field_name, $per_page = NULL) {
     
     if ($per_page === NULL) {
-      $field_config = FieldConfig::loadByName($entity->getEntityTypeId(), $entity->bundle(), $field_name);
-      if ($field_config) {
-        $settings = $field_config->getSettings();
-        if (!empty($settings['per_page'])) {
-          $per_page = $settings['per_page'];
-        }
-        else {
-          $per_page = 50; 
-        }
-      }
+      $field_config = FieldConfig::loadByName(
+        $entity->getEntityTypeId(),
+        $entity->bundle(),
+        $field_name
+      );
+      $settings = $field_config?->getSettings();
+      $per_page = !empty($settings['per_page']) ? $settings['per_page'] : 50;
     }
-    
+
     $nid = $entity->id();
-    $user = \Drupal::currentUser();
+
+    
     $total_query = \Drupal::entityQuery('comment')
-    ->accessCheck(TRUE)
-    ->condition('entity_id', $nid)
-    ->condition('entity_type', $entity->getEntityTypeId())
-    ->condition('field_name', $field_name)
-    ->condition('pid', NULL, 'IS NULL'); 
-
-
-    if (!$user->hasPermission('view any unpublished comment')) {
-        $total_query->condition('status', 1);
-    }
+      ->accessCheck(TRUE)
+      ->condition('entity_id', $nid)
+      ->condition('entity_type', $entity->getEntityTypeId())
+      ->condition('field_name', $field_name)
+      ->condition('pid', NULL, 'IS NULL');
 
     $total = $total_query->count()->execute();
 
-    $pager = \Drupal::service('pager.manager')->createPager($total, $per_page);
+   
+    $pager = \Drupal::service('pager.manager')
+      ->createPager($total, $per_page);
 
+    
     $ids_query = \Drupal::entityQuery('comment')
-    ->accessCheck(TRUE)
-    ->condition('entity_id', $nid)
-    ->condition('entity_type', $entity->getEntityTypeId())
-    ->condition('field_name', $field_name)
-    ->condition('pid', NULL, 'IS NULL')
-    ->sort('created', 'DESC')
-    ->range($pager->getCurrentPage() * $per_page, $per_page);
-
-
-    if (!$user->hasPermission('view any unpublished comment')) {
-        $ids_query->condition('status', 1);
-    }
+      ->accessCheck(TRUE)
+      ->condition('entity_id', $nid)
+      ->condition('entity_type', $entity->getEntityTypeId())
+      ->condition('field_name', $field_name)
+      ->condition('pid', NULL, 'IS NULL')
+      ->sort('created', 'DESC')
+      ->range($pager->getCurrentPage() * $per_page, $per_page);
 
     $parent_ids = $ids_query->execute();
 
-    $parents = Comment::loadMultiple($parent_ids);
+    $parents = array_filter(
+      Comment::loadMultiple($parent_ids),
+      fn($comment) => $comment->access('view')
+    );
 
     $all_comments = $parents;
-
     foreach ($parents as $parent) {
       $children = self::loadChildrenRecursively($parent);
       foreach ($children as $child) {
-        $all_comments[$child->id()] = $child;
+          $all_comments[$child->id()] = $child;
       }
     }
 
-    $rendered_comments = [];
-    foreach ($all_comments as $comment) {
-      $view_builder = \Drupal::entityTypeManager()->getViewBuilder('comment');
-      $rendered = $view_builder->view($comment);
-      $rendered['#comment'] = $comment;
-      $rendered_comments[] = $rendered;
-    }
+    $view_builder = \Drupal::entityTypeManager()->getViewBuilder('comment');
+    $comments_to_render = array_values($all_comments);
+    $rendered_comments = $view_builder->viewMultiple($comments_to_render);
 
     return [
       'rendered' => $rendered_comments,
@@ -120,21 +109,24 @@ class CommentHelper {
    */
   protected static function loadChildrenRecursively(Comment $comment) {
     $children_comments = [];
-    $user = \Drupal::currentUser();
 
-    $children_query = \Drupal::entityQuery('comment')
+    $children_ids = \Drupal::entityQuery('comment')
       ->accessCheck(TRUE)
       ->condition('pid', $comment->id())
-      ->sort('created', 'DESC');
+      ->sort('created', 'ASC')
+      ->execute();
 
-    if (!$user->hasPermission('view any unpublished comment')) {
-     $children_query->condition('status', 1);
-    }  
+    if (empty($children_ids)) {
+      return [];
+    }
 
-    $children_ids = $children_query->execute();
     $children = Comment::loadMultiple($children_ids);
 
     foreach ($children as $child) {
+      if (!$child->access('view')) {
+        continue;
+      }
+
       $children_comments[$child->id()] = $child;
       $grandchildren = self::loadChildrenRecursively($child);
       foreach ($grandchildren as $grandchild) {

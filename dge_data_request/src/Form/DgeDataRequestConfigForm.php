@@ -125,7 +125,7 @@ class DgeDataRequestConfigForm extends ConfigFormBase {
         $form['dge_data_request_published_email'] = [
             '#type' => 'fieldset',
             '#title' => t('Leave the request'),
-          ];
+        ];
 
         $form['dge_data_request_published_email']['dge_data_request_published_email_enabled'] = [
         '#type' => 'checkbox',
@@ -133,19 +133,19 @@ class DgeDataRequestConfigForm extends ConfigFormBase {
         '#default_value' => $request_published_enabled,
         ];
 
-          $form['dge_data_request_published_email']['dge_data_request_published_email_subject'] = [
-            '#type' => 'textfield',
-            '#title' => t('Subject'),
-            '#default_value' => $leave_the_request_email_subject,
+        $form['dge_data_request_published_email']['dge_data_request_published_email_subject'] = [
+        '#type' => 'textfield',
+        '#title' => t('Subject'),
+        '#default_value' => $leave_the_request_email_subject,
 
-          ];
-          $form['dge_data_request_published_email']['dge_data_request_published_email_content'] = [
-            '#type' => 'textarea',
-            '#title' => t('Body'),
-            '#required'      => true,
-            '#default_value' => $leave_the_request_email_content,
-           
-          ];
+        ];
+        $form['dge_data_request_published_email']['dge_data_request_published_email_content'] = [
+        '#type' => 'textarea',
+        '#title' => t('Body'),
+        '#required'      => true,
+        '#default_value' => $leave_the_request_email_content,
+        
+        ];
 
         return parent::buildForm($form, $form_state);
     }

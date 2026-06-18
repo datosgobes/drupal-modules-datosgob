@@ -61,6 +61,15 @@ define('ESTADO_DE_CONTENIDO', [
   'estados_de_contenido-despublicado',
 ]);
 
+define('ESTADO_DE_CONTENIDO_EMPRESAS', [
+  'empresas_reutilizadoras-draft',
+  'empresas_reutilizadoras-published',
+  'empresas_reutilizadoras-en_estudio',
+  'empresas_reutilizadoras-programado',
+  'empresas_reutilizadoras-descartado',
+  'empresas_reutilizadoras-despublicado',
+]);
+
 /**
  * implements hook_form_alter
  *
@@ -83,8 +92,10 @@ function dge_data_request_form_alter(&$form, FormStateInterface $form_state, $fo
         break;
 
       case VISTA_PUBLICADOR_APLICACIONES:
-      case VISTA_PUBLICADOR_EMPRESAS:
         filter_moderation_state($form['moderation_state']['#options'], ESTADO_DE_CONTENIDO);
+        break;
+      case VISTA_PUBLICADOR_EMPRESAS:
+        filter_moderation_state($form['moderation_state']['#options'], ESTADO_DE_CONTENIDO_EMPRESAS);
         break;
     }
   }
@@ -430,7 +441,8 @@ function dge_basic_settings_node_update(Drupal\Core\Entity\EntityInterface $enti
     if (!empty($term)) {
       $term = reset($term);
       $entity->set('field_estado', $term->id());
-      $entity->setNewRevision(FALSE);
+
+      $entity->setNewRevision(FALSE); // Disable new revision creation to avoid potential loops.
       $entity->save();
     }
   }

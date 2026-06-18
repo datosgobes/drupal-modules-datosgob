@@ -58,11 +58,15 @@ class DgeDataRequestUnsubscriptionForm extends FormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
   
     $this->node = $node = $this->loadNode();
-    $form['field_sender_email'] = [
+      $form['field_sender_email'] = [
       '#type' => 'email',
       '#title' => $this->t('Email'),
       '#required' => TRUE,
       '#description' => $this->t('Enter your email address. Ex: abc@xyz.com'),
+      '#attributes' => [
+        'autocomplete' => 'email',
+        'inputmode' => 'email',
+      ],
     ];
 
     $form['field_sender_consent'] = [
@@ -75,8 +79,8 @@ class DgeDataRequestUnsubscriptionForm extends FormBase {
       <a href='https://www.red.es/es/proteccion-de-datos' target='_blank'>Personal data protection</a>"),
       '#required' => TRUE,
       '#attributes' => [
-        'title' => $this->t("Select this checkbox if you want to continue."), 
-        'aria-describedby' => 'edit-field-sender-consent-tooltip', 
+        'title' => $this->t("Select this checkbox if you want to continue."),
+        'aria-describedby' => 'edit-field-sender-consent-tooltip',
       ],
       '#description' => [
         '#markup' => '<span id="edit-field-sender-consent-tooltip" class="visually-hidden">This field is required, and you must consent to the privacy policy to continue.</span>',

@@ -19,7 +19,7 @@
   * You should have received a copy of the GNU General Public License
   * along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\Entity\Node;
 use Drupal\comment\Entity\Comment;
@@ -99,6 +99,43 @@ function dge_comments_preprocess_comment(&$variables) {
     $variables['author'] = [
       '#markup' => str_replace(' (' . t('not verified') . ')','',$variables['author'])
     ];
+  }
+}
+
+function dge_comments_preprocess_form(&$variables) {
+  if (empty($variables['element']['#form_id']) || $variables['element']['#form_id'] !== 'comment_comment_form') {
+    return;
+  }
+  ($variables['element']['#cache']['contexts'] = Cache::mergeContexts(
+      $variables['element']['#cache']['contexts'] ?? [],
+      ['user', 'user.roles']
+  ));
+  $current_user = \Drupal::currentUser();
+
+  //Si no está logado => no mostrar helper
+  if (!$current_user->isAuthenticated()){
+    return;
+  }
+
+  $user = \Drupal\user\Entity\User::load($current_user->id());
+
+  if (!$user) {
+    return;
+  }
+
+  if (dge_user_is_administrator_user($user) || dge_user_is_content_editor($user)) {
+    $variables['comment_helper_org'] = 'datos.gob.es';
+  }
+  elseif (dge_user_is_organization_user($user)) {
+    if ($user->hasField('field_organizacion') && !$user->get('field_organizacion')-> isEmpty()) {
+      $org_term = $user->get('field_organizacion')->entity;
+      if ($org_term) {
+        $variables['comment_helper_org'] = $org_term->label();
+      }
+    }
+  }
+  else {
+    $variables['comment_helper_org'] = $user->getDisplayName();
   }
 }
 
