@@ -702,7 +702,7 @@ function setUrlsApiCkan(array &$links, $counter){
 
   for ($start = 0; $start < $counter; $start += $rows) {
 
-    $url = $path."/package_search?rows=".$rows."&start=".$start."&fq=".$fq_encoded;
+    $url = $path."/package_search?rows=".$rows."&start=".$start."&fq=".$fq_encoded."&fl=name,metadata_modified";
     
     $content = file_get_contents($url);
     $contentPhp = json_decode($content);
